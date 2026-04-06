@@ -38,6 +38,16 @@ struct HomeView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("KITB")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .symbolRenderingMode(.hierarchical)
+                    }
+                }
+            }
             .navigationDestination(for: ProcessingRoute.self) { route in
                 ProcessingView(image: route.image, navigationPath: $navigationPath)
             }

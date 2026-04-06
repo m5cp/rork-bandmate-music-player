@@ -24,17 +24,14 @@ struct ContentView: View {
             Tab("Home", systemImage: "house.fill", value: 0) {
                 HomeView()
             }
-            Tab("Samples", systemImage: "music.note.list", value: 1) {
-                SampleLibraryView()
+            Tab("Tools", systemImage: "tuningfork", value: 1) {
+                ToolsView()
             }
-            Tab("History", systemImage: "clock.arrow.circlepath", value: 2) {
-                PracticeHistoryView()
-            }
-            Tab("Library", systemImage: "books.vertical.fill", value: 3) {
+            Tab("Library", systemImage: "books.vertical.fill", value: 2) {
                 LibraryView()
             }
-            Tab("Settings", systemImage: "gearshape.fill", value: 4) {
-                SettingsView()
+            Tab("History", systemImage: "clock.arrow.circlepath", value: 3) {
+                PracticeHistoryView()
             }
         }
         .tabViewStyle(.sidebarAdaptable)
