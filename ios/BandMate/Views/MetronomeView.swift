@@ -9,6 +9,10 @@ struct MetronomeView: View {
     @State private var metronomeTask: Task<Void, Never>?
     @State private var beatScale: CGFloat = 1.0
     @State private var audioPlayer: AVAudioPlayer?
+    @State private var flashOpacity: Double = 0
+    @State private var ringScale: CGFloat = 0.8
+    @State private var pendulumAngle: Double = 0
+    @State private var pulsePhase: Bool = false
 
     private let bpmRange: ClosedRange<Double> = 40...240
 
@@ -39,25 +43,82 @@ struct MetronomeView: View {
     }
 
     private var beatVisualization: some View {
-        HStack(spacing: 16) {
-            ForEach(0..<beatsPerMeasure, id: \.self) { beat in
-                let isActive = isPlaying && currentBeat == beat
-                let isDownbeat = beat == 0
+        VStack(spacing: 24) {
+            ZStack {
+                Circle()
+                    .stroke(Color.blue.opacity(0.08), lineWidth: 3)
+                    .frame(width: 160, height: 160)
+
+                Circle()
+                    .stroke(
+                        (currentBeat == 0 && isPlaying)
+                            ? Color.red.opacity(0.5)
+                            : Color.blue.opacity(0.3),
+                        lineWidth: 2
+                    )
+                    .frame(width: 160, height: 160)
+                    .scaleEffect(ringScale)
+                    .opacity(isPlaying ? 1 : 0)
 
                 Circle()
                     .fill(
-                        isActive
-                            ? (isDownbeat
+                        (currentBeat == 0 && isPlaying)
+                            ? RadialGradient(colors: [.red.opacity(0.2), .clear], center: .center, startRadius: 0, endRadius: 80)
+                            : RadialGradient(colors: [.blue.opacity(0.15), .clear], center: .center, startRadius: 0, endRadius: 80)
+                    )
+                    .frame(width: 160, height: 160)
+                    .opacity(flashOpacity)
+
+                pendulumArm
+
+                Circle()
+                    .fill(
+                        isPlaying
+                            ? (currentBeat == 0
                                 ? LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
                                 : LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            : LinearGradient(colors: [Color(.tertiarySystemFill), Color(.quaternarySystemFill)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            : LinearGradient(colors: [Color(.quaternarySystemFill), Color(.tertiarySystemFill)], startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
-                    .frame(width: isActive ? 28 : 20, height: isActive ? 28 : 20)
-                    .shadow(color: isActive ? (isDownbeat ? .red.opacity(0.4) : .blue.opacity(0.4)) : .clear, radius: 8)
-                    .animation(.spring(duration: 0.15), value: isActive)
+                    .frame(width: 20, height: 20)
+                    .scaleEffect(pulsePhase ? 1.6 : 1.0)
+                    .shadow(color: isPlaying ? (currentBeat == 0 ? .red.opacity(0.6) : .blue.opacity(0.5)) : .clear, radius: pulsePhase ? 16 : 4)
             }
+            .frame(width: 170, height: 170)
+
+            HStack(spacing: 14) {
+                ForEach(0..<beatsPerMeasure, id: \.self) { beat in
+                    let isActive = isPlaying && currentBeat == beat
+                    let isDownbeat = beat == 0
+
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            isActive
+                                ? (isDownbeat
+                                    ? LinearGradient(colors: [.red, .orange], startPoint: .top, endPoint: .bottom)
+                                    : LinearGradient(colors: [.blue, .cyan], startPoint: .top, endPoint: .bottom))
+                                : LinearGradient(colors: [Color(.tertiarySystemFill), Color(.quaternarySystemFill)], startPoint: .top, endPoint: .bottom)
+                        )
+                        .frame(width: isDownbeat ? 10 : 8, height: isActive ? 32 : 16)
+                        .shadow(color: isActive ? (isDownbeat ? .red.opacity(0.5) : .blue.opacity(0.4)) : .clear, radius: isActive ? 10 : 0)
+                        .animation(.spring(response: 0.2, dampingFraction: 0.5), value: isActive)
+                }
+            }
+            .frame(height: 36)
         }
-        .frame(height: 36)
+    }
+
+    private var pendulumArm: some View {
+        Capsule()
+            .fill(
+                LinearGradient(
+                    colors: isPlaying ? [.blue.opacity(0.6), .cyan.opacity(0.3)] : [Color(.tertiarySystemFill)],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+            )
+            .frame(width: 3, height: 56)
+            .offset(y: -28)
+            .rotationEffect(.degrees(pendulumAngle), anchor: .bottom)
     }
 
     private var tempoDisplay: some View {
@@ -258,5 +319,26 @@ struct MetronomeView: View {
 
     private func playClick(isDownbeat: Bool) {
         AudioServicesPlaySystemSound(isDownbeat ? 1057 : 1104)
+        triggerBeatAnimation(isDownbeat: isDownbeat)
+    }
+
+    private func triggerBeatAnimation(isDownbeat: Bool) {
+        withAnimation(.easeOut(duration: 0.08)) {
+            flashOpacity = isDownbeat ? 1.0 : 0.6
+            pulsePhase = true
+            ringScale = 1.15
+        }
+
+        let swingAngle: Double = min(30, 15 + (bpm / 20))
+        let direction: Double = currentBeat % 2 == 0 ? 1 : -1
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.45)) {
+            pendulumAngle = swingAngle * direction
+        }
+
+        withAnimation(.easeIn(duration: 0.35).delay(0.08)) {
+            flashOpacity = 0
+            pulsePhase = false
+            ringScale = 0.8
+        }
     }
 }
