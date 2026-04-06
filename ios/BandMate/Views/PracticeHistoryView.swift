@@ -4,6 +4,7 @@ import SwiftData
 struct PracticeHistoryView: View {
     @Query(sort: \PracticeSession.date, order: .reverse) private var sessions: [PracticeSession]
     @State private var selectedSession: PracticeSession?
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         NavigationStack {
@@ -109,6 +110,7 @@ struct PracticeHistoryView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
+        .frame(maxWidth: horizontalSizeClass == .regular ? 700 : .infinity)
     }
 
     @Environment(\.modelContext) private var modelContext

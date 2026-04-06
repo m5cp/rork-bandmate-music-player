@@ -64,6 +64,8 @@ struct ProcessingView: View {
 
             Spacer()
         }
+        .frame(maxWidth: 500)
+        .frame(maxWidth: .infinity)
         .onAppear { animationPhase = true }
     }
 
@@ -96,5 +98,7 @@ struct ProcessingView: View {
 
             Spacer()
         }
+        .frame(maxWidth: 500)
+        .frame(maxWidth: .infinity)
     }
 }

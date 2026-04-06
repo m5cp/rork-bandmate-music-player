@@ -4,6 +4,7 @@ struct ContentView: View {
     @AppStorage("hasSeenWelcome") private var hasSeenWelcome: Bool = false
     @State private var selectedTab: Int = 0
     @State private var showWelcomeTransition: Bool = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         ZStack {
@@ -36,5 +37,6 @@ struct ContentView: View {
                 SettingsView()
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
     }
 }

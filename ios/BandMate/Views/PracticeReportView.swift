@@ -6,23 +6,51 @@ struct PracticeReportView: View {
     let skillLevel: SkillLevel
     let onPracticeAgain: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var animateScore: Bool = false
     @State private var showDetails: Bool = false
     @State private var showShareSheet: Bool = false
 
+    private var isRegular: Bool {
+        horizontalSizeClass == .regular
+    }
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                scoreHeader
-                skillLevelBadge
-                focusAreasSection
-                strengthsSection
-                improvementsSection
-                tipsSection
-                encouragementCard
-                actionButtons
+            if isRegular {
+                HStack(alignment: .top, spacing: 32) {
+                    VStack(spacing: 24) {
+                        scoreHeader
+                        skillLevelBadge
+                        encouragementCard
+                        actionButtons
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    VStack(spacing: 24) {
+                        focusAreasSection
+                        strengthsSection
+                        improvementsSection
+                        tipsSection
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding()
+                .frame(maxWidth: 1000)
+                .frame(maxWidth: .infinity)
+            } else {
+                VStack(spacing: 24) {
+                    scoreHeader
+                    skillLevelBadge
+                    focusAreasSection
+                    strengthsSection
+                    improvementsSection
+                    tipsSection
+                    encouragementCard
+                    actionButtons
+                }
+                .padding()
             }
-            .padding()
         }
         .onAppear {
             withAnimation(.spring(duration: 0.8, bounce: 0.3).delay(0.2)) {

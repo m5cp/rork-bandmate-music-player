@@ -3,6 +3,7 @@ import SwiftData
 
 struct SampleLibraryView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var selectedDifficulty: SamplePiece.Difficulty?
     @State private var navigationPath = NavigationPath()
 
@@ -63,6 +64,8 @@ struct SampleLibraryView: View {
         }
         .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 12))
         .padding(.horizontal)
+        .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+        .frame(maxWidth: .infinity)
     }
 
     private func playSample(_ piece: SamplePiece) {

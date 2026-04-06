@@ -7,18 +7,38 @@ struct ResultsView: View {
     @Binding var navigationPath: NavigationPath
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isSaved: Bool = false
     @State private var savedSong: Song?
     @State private var appeared: Bool = false
 
+    private var isRegular: Bool {
+        horizontalSizeClass == .regular
+    }
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                sheetPreview
-                musicInfo
-                actionButtons
+            if isRegular {
+                HStack(alignment: .top, spacing: 32) {
+                    sheetPreview
+                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 24) {
+                        musicInfo
+                        actionButtons
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding()
+                .frame(maxWidth: 900)
+                .frame(maxWidth: .infinity)
+            } else {
+                VStack(spacing: 24) {
+                    sheetPreview
+                    musicInfo
+                    actionButtons
+                }
+                .padding()
             }
-            .padding()
         }
         .navigationTitle("Results")
         .navigationBarTitleDisplayMode(.inline)

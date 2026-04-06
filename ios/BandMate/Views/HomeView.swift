@@ -12,14 +12,19 @@ struct HomeView: View {
     @State private var showPracticeMode: Bool = false
     @State private var practiceTargetSong: Song?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    greetingSection
-                    actionCards
-                    practiceCard
+                    if isRegular {
+                        iPadTopSection
+                    } else {
+                        greetingSection
+                        actionCards
+                        practiceCard
+                    }
                     if !hasUsedApp {
                         howItWorksSection
                     }
@@ -28,6 +33,8 @@ struct HomeView: View {
                     }
                 }
                 .padding(.vertical)
+                .frame(maxWidth: isRegular ? 900 : .infinity)
+                .frame(maxWidth: .infinity)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("KITB")
@@ -163,6 +170,73 @@ struct HomeView: View {
         case 5..<12: return "Good morning"
         case 12..<17: return "Good afternoon"
         default: return "Good evening"
+        }
+    }
+
+    private var isRegular: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var iPadTopSection: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            greetingSection
+
+            HStack(spacing: 16) {
+                Button {
+                    viewModel.showCamera = true
+                } label: {
+                    ActionCardLabel(
+                        icon: "camera.fill",
+                        title: "Scan Music",
+                        subtitle: "Point your camera at printed sheet music",
+                        gradient: [Color.blue, Color.cyan]
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    if let lastSong = recentlyPlayed.first {
+                        practiceTargetSong = lastSong
+                    } else {
+                        practiceTargetSong = nil
+                    }
+                    showPracticeMode = true
+                } label: {
+                    ActionCardLabel(
+                        icon: "mic.fill",
+                        title: "Practice & Record",
+                        subtitle: "Record yourself & get AI feedback",
+                        gradient: [Color.red, Color.orange]
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal)
+
+            HStack(spacing: 12) {
+                Button {
+                    viewModel.showPhotoPicker = true
+                } label: {
+                    SmallActionCardLabel(
+                        icon: "photo.on.rectangle",
+                        title: "Photo Library",
+                        color: .indigo
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    viewModel.showDocumentPicker = true
+                } label: {
+                    SmallActionCardLabel(
+                        icon: "doc.fill",
+                        title: "Upload PDF",
+                        color: .orange
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal)
         }
     }
 

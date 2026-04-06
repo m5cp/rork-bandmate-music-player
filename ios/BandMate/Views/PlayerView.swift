@@ -9,19 +9,46 @@ struct PlayerView: View {
     @State private var showInstrumentPicker: Bool = false
     @State private var showPracticeMode: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var isRegular: Bool {
+        horizontalSizeClass == .regular
+    }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                sheetPreview
-                nowPlayingInfo
-                progressSection
-                playbackControls
-                practiceModeButton
-                instrumentSection
-                tempoControl
+            if isRegular {
+                HStack(alignment: .top, spacing: 32) {
+                    VStack(spacing: 24) {
+                        sheetPreview
+                        nowPlayingInfo
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    VStack(spacing: 24) {
+                        progressSection
+                        playbackControls
+                        practiceModeButton
+                        instrumentSection
+                        tempoControl
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding()
+                .frame(maxWidth: 1000)
+                .frame(maxWidth: .infinity)
+            } else {
+                VStack(spacing: 24) {
+                    sheetPreview
+                    nowPlayingInfo
+                    progressSection
+                    playbackControls
+                    practiceModeButton
+                    instrumentSection
+                    tempoControl
+                }
+                .padding()
             }
-            .padding()
         }
         .navigationTitle("Player")
         .navigationBarTitleDisplayMode(.inline)

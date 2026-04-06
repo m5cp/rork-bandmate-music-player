@@ -7,6 +7,7 @@ struct PracticeModeView: View {
     @State private var viewModel = PracticeModeViewModel()
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var activeInstrument: Instrument {
         instrument ?? viewModel.selectedInstrument
@@ -21,14 +22,24 @@ struct PracticeModeView: View {
                 switch viewModel.phase {
                 case .setup:
                     setupView
+                        .frame(maxWidth: horizontalSizeClass == .regular ? 700 : .infinity)
+                        .frame(maxWidth: .infinity)
                 case .idle:
                     idleView
+                        .frame(maxWidth: horizontalSizeClass == .regular ? 600 : .infinity)
+                        .frame(maxWidth: .infinity)
                 case .countdown(let count):
                     countdownView(count)
+                        .frame(maxWidth: horizontalSizeClass == .regular ? 600 : .infinity)
+                        .frame(maxWidth: .infinity)
                 case .recording:
                     recordingView
+                        .frame(maxWidth: horizontalSizeClass == .regular ? 600 : .infinity)
+                        .frame(maxWidth: .infinity)
                 case .analyzing:
                     analyzingView
+                        .frame(maxWidth: horizontalSizeClass == .regular ? 600 : .infinity)
+                        .frame(maxWidth: .infinity)
                 case .complete(let feedback):
                     PracticeReportView(
                         feedback: feedback,
