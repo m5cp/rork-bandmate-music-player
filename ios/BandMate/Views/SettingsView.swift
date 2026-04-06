@@ -9,8 +9,6 @@ struct SettingsView: View {
     @AppStorage("appearanceMode") private var appearanceModeRaw: String = AppearanceMode.system.rawValue
     @AppStorage("skillLevel") private var skillLevelRaw: String = SkillLevel.beginner.rawValue
 
-    @State private var showPrivacyPolicy: Bool = false
-    @State private var showTerms: Bool = false
     @State private var showInstrumentPicker: Bool = false
     @State private var selectedInstrument: Instrument = .trumpet
 
@@ -25,6 +23,7 @@ struct SettingsView: View {
                 instrumentSection
                 skillLevelSection
                 practiceReminderSection
+                supportSection
                 aboutSection
                 legalSection
             }
@@ -207,71 +206,86 @@ struct SettingsView: View {
         }
     }
 
+    private var supportSection: some View {
+        Section {
+            SettingsNavigationRow(
+                icon: "headphones.circle.fill",
+                iconColor: .blue,
+                title: "Contact Support",
+                destination: ContactSupportView()
+            )
+
+            SettingsNavigationRow(
+                icon: "accessibility",
+                iconColor: .blue,
+                title: "Accessibility",
+                destination: AccessibilityView()
+            )
+        } header: {
+            Text("Support")
+        }
+    }
+
     private var aboutSection: some View {
         Section {
-            HStack {
-                Text("Version")
-                    .fontWeight(.medium)
-                Spacer()
-                Text("1.0.0")
-                    .foregroundStyle(.secondary)
-                    .fontWeight(.medium)
-            }
+            SettingsNavigationRow(
+                icon: "info.circle.fill",
+                iconColor: .purple,
+                title: "About KITB",
+                destination: AboutKITBView()
+            )
 
             HStack {
-                Text("App")
-                    .fontWeight(.medium)
+                Label {
+                    Text("Version")
+                } icon: {
+                    Image(systemName: "number.circle.fill")
+                        .foregroundStyle(.gray)
+                }
                 Spacer()
-                Text("KITB – Sheet Music Player")
+                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
                     .foregroundStyle(.secondary)
                     .font(.subheadline.weight(.medium))
             }
         } header: {
             Text("About")
-        } footer: {
-            Text("For educational use only. Accuracy may vary depending on image quality and music complexity.")
-                .font(.caption)
         }
     }
 
     private var legalSection: some View {
         Section {
-            Button("Privacy Policy") { showPrivacyPolicy = true }
-            Button("Terms of Use") { showTerms = true }
-            NavigationLink("Apple EULA") {
-                LegalTextView(
-                    title: "Apple EULA",
-                    text: "This application is licensed to you under the terms of the Apple Licensed Application End User License Agreement (\"Standard EULA\"), the terms of which are available at:\n\nhttps://www.apple.com/legal/internet-services/itunes/dev/stdeula/\n\nBy using this application, you agree to these terms."
-                )
-            }
+            SettingsNavigationRow(
+                icon: "lock.shield.fill",
+                iconColor: .blue,
+                title: "Privacy Policy",
+                destination: PrivacyPolicyView()
+            )
+
+            SettingsNavigationRow(
+                icon: "doc.text.fill",
+                iconColor: .indigo,
+                title: "Terms of Use",
+                destination: TermsOfUseView()
+            )
+
+            SettingsNavigationRow(
+                icon: "exclamationmark.triangle.fill",
+                iconColor: .orange,
+                title: "Disclaimers",
+                destination: DisclaimerView()
+            )
+
+            SettingsNavigationRow(
+                icon: "doc.plaintext.fill",
+                iconColor: .gray,
+                title: "Apple EULA",
+                destination: AppleEULAView()
+            )
         } header: {
             Text("Legal")
-        }
-        .sheet(isPresented: $showPrivacyPolicy) {
-            NavigationStack {
-                LegalTextView(
-                    title: "Privacy Policy",
-                    text: "KITB – Sheet Music Player\n\nLast updated: April 2026\n\nYour privacy matters to us. This app processes sheet music images to detect musical notation. Images are sent to our secure servers for analysis and are not stored permanently.\n\nData We Collect:\n• Sheet music images (temporarily, for analysis only)\n• Song data you save (stored locally and synced to your account)\n• App preferences\n\nData We Don't Collect:\n• Personal identification information\n• Location data\n• Contact information\n\nWe do not sell, share, or distribute your data to third parties.\n\nFor questions, contact: support@kitb.app"
-                )
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { showPrivacyPolicy = false }
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: $showTerms) {
-            NavigationStack {
-                LegalTextView(
-                    title: "Terms of Use",
-                    text: "KITB – Sheet Music Player\n\nTerms of Use\nLast updated: April 2026\n\nBy using this app, you agree to the following:\n\n1. Educational Use: This app is designed for educational purposes to help students learn and practice music.\n\n2. Accuracy: Music recognition accuracy may vary. Always verify results against your original sheet music.\n\n3. Copyright: You are responsible for ensuring you have the right to scan and use any sheet music. Do not scan copyrighted material without permission.\n\n4. Acceptable Use: Use this app only for lawful purposes.\n\n5. Disclaimer: This app is provided \"as is\" without warranties of any kind.\n\n6. Limitation of Liability: We are not liable for any damages arising from use of this app.\n\nFor questions, contact: support@kitb.app"
-                )
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { showTerms = false }
-                    }
-                }
-            }
+        } footer: {
+            Text("KITB is a supplemental learning tool for educational use only. It does not replace instruction from a qualified music teacher.")
+                .font(.caption)
         }
     }
 
@@ -318,17 +332,70 @@ struct SettingsView: View {
     }
 }
 
-struct LegalTextView: View {
+struct SettingsNavigationRow<Destination: View>: View {
+    let icon: String
+    let iconColor: Color
     let title: String
-    let text: String
+    let destination: Destination
 
     var body: some View {
-        ScrollView {
-            Text(text)
-                .font(.body)
-                .padding()
+        NavigationLink {
+            destination
+        } label: {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: icon)
+                    .foregroundStyle(iconColor)
+            }
         }
-        .navigationTitle(title)
+        .accessibilityLabel(title)
+    }
+}
+
+struct AppleEULAView: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                headerBadge(icon: "apple.logo", color: .gray, title: "Apple EULA", date: "Standard License Agreement")
+
+                PolicyCard(icon: "doc.text.fill", iconColor: .gray, title: "License Agreement") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("This application is licensed to you under the terms of the Apple Licensed Application End User License Agreement (\"Standard EULA\").")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text("The full terms are available at:")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "safari.fill")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("View Apple Standard EULA")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption.weight(.bold))
+                            }
+                            .padding(14)
+                            .background(Color.blue.opacity(0.08), in: .rect(cornerRadius: 12))
+                        }
+
+                        Text("By using this application, you agree to these terms.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 40)
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("Apple EULA")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
