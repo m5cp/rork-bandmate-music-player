@@ -8,11 +8,11 @@ struct MetronomeView: View {
     @State private var beatsPerMeasure: Int = 4
     @State private var metronomeTask: Task<Void, Never>?
     @State private var beatScale: CGFloat = 1.0
-    @State private var audioPlayer: AVAudioPlayer?
     @State private var flashOpacity: Double = 0
     @State private var ringScale: CGFloat = 0.8
     @State private var pendulumAngle: Double = 0
     @State private var pulsePhase: Bool = false
+    @State private var clickEngine: MetronomeClickEngine?
 
     private let bpmRange: ClosedRange<Double> = 40...240
 
@@ -37,8 +37,12 @@ struct MetronomeView: View {
             Spacer()
         }
         .padding(.horizontal)
+        .onAppear {
+            clickEngine = MetronomeClickEngine()
+        }
         .onDisappear {
             stopMetronome()
+            clickEngine?.cleanup()
         }
     }
 
@@ -274,7 +278,7 @@ struct MetronomeView: View {
     private func startMetronome() {
         isPlaying = true
         currentBeat = 0
-        setupAudioSession()
+        clickEngine?.start()
         runMetronome()
     }
 
@@ -283,6 +287,7 @@ struct MetronomeView: View {
         metronomeTask?.cancel()
         metronomeTask = nil
         currentBeat = 0
+        clickEngine?.stop()
     }
 
     private func restartMetronome() {
@@ -296,7 +301,8 @@ struct MetronomeView: View {
         metronomeTask = Task {
             while !Task.isCancelled && isPlaying {
                 let isDownbeat = currentBeat == 0
-                playClick(isDownbeat: isDownbeat)
+                clickEngine?.playClick(isDownbeat: isDownbeat)
+                triggerBeatAnimation(isDownbeat: isDownbeat)
 
                 let interval = 60.0 / bpm
                 try? await Task.sleep(for: .milliseconds(Int(interval * 1000)))
@@ -305,21 +311,6 @@ struct MetronomeView: View {
                 currentBeat = (currentBeat + 1) % beatsPerMeasure
             }
         }
-    }
-
-    private func setupAudioSession() {
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default)
-            try session.setActive(true)
-        } catch {
-            print("Audio session error: \(error)")
-        }
-    }
-
-    private func playClick(isDownbeat: Bool) {
-        AudioServicesPlaySystemSound(isDownbeat ? 1057 : 1104)
-        triggerBeatAnimation(isDownbeat: isDownbeat)
     }
 
     private func triggerBeatAnimation(isDownbeat: Bool) {
@@ -340,5 +331,91 @@ struct MetronomeView: View {
             pulsePhase = false
             ringScale = 0.8
         }
+    }
+}
+
+@MainActor
+class MetronomeClickEngine {
+    private var engine: AVAudioEngine?
+    private var playerNode: AVAudioPlayerNode?
+    private var highClickBuffer: AVAudioPCMBuffer?
+    private var lowClickBuffer: AVAudioPCMBuffer?
+
+    init() {
+        setupEngine()
+    }
+
+    private func setupEngine() {
+        let engine = AVAudioEngine()
+        let player = AVAudioPlayerNode()
+
+        engine.attach(player)
+
+        let sampleRate: Double = 44100
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+
+        engine.connect(player, to: engine.mainMixerNode, format: format)
+
+        highClickBuffer = generateClickBuffer(frequency: 1200, duration: 0.03, sampleRate: sampleRate, amplitude: 0.8, format: format)
+        lowClickBuffer = generateClickBuffer(frequency: 800, duration: 0.025, sampleRate: sampleRate, amplitude: 0.5, format: format)
+
+        self.engine = engine
+        self.playerNode = player
+    }
+
+    private func generateClickBuffer(frequency: Double, duration: Double, sampleRate: Double, amplitude: Float, format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        let frameCount = AVAudioFrameCount(sampleRate * duration)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return nil }
+        buffer.frameLength = frameCount
+
+        guard let channelData = buffer.floatChannelData?[0] else { return nil }
+
+        for i in 0..<Int(frameCount) {
+            let t = Double(i) / sampleRate
+            let envelope = Float(1.0 - (t / duration))
+            let attackEnvelope: Float = min(1.0, Float(t * sampleRate / 20.0))
+            let sample = sin(2.0 * Double.pi * frequency * t)
+            channelData[i] = Float(sample) * amplitude * envelope * envelope * attackEnvelope
+        }
+
+        return buffer
+    }
+
+    func start() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+            engine?.prepare()
+            try engine?.start()
+            playerNode?.play()
+        } catch {
+            print("Metronome engine start error: \(error)")
+        }
+    }
+
+    func stop() {
+        playerNode?.stop()
+        engine?.stop()
+    }
+
+    func playClick(isDownbeat: Bool) {
+        guard let player = playerNode,
+              let buffer = isDownbeat ? highClickBuffer : lowClickBuffer else { return }
+
+        if engine?.isRunning != true {
+            start()
+        }
+
+        player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+    }
+
+    func cleanup() {
+        stop()
+        if let player = playerNode {
+            engine?.detach(player)
+        }
+        engine = nil
+        playerNode = nil
     }
 }

@@ -12,9 +12,9 @@ class TunerViewModel {
     var centsOff: Double = 0
     var referencePitch: Double = 440.0
     var targetFrequency: Double = 440.0
+    var permissionDenied: Bool = false
 
     private var audioEngine: AVAudioEngine?
-    private var inputNode: AVAudioInputNode?
 
     private let noteNames = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]
 
@@ -27,7 +27,7 @@ class TunerViewModel {
 
     var tuningText: String {
         let absCents = abs(centsOff)
-        if absCents < 5 { return "In Tune ✓" }
+        if absCents < 5 { return "In Tune" }
         if centsOff < 0 { return "Flat — \(Int(absCents))¢" }
         return "Sharp + \(Int(absCents))¢"
     }
@@ -35,15 +35,21 @@ class TunerViewModel {
     func start() {
         Task {
             let granted = await requestMicPermission()
-            guard granted else { return }
+            guard granted else {
+                permissionDenied = true
+                return
+            }
+            permissionDenied = false
             startListening()
         }
     }
 
     func stop() {
         isListening = false
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
+        if let engine = audioEngine {
+            engine.inputNode.removeTap(onBus: 0)
+            engine.stop()
+        }
         audioEngine = nil
     }
 
@@ -56,10 +62,26 @@ class TunerViewModel {
     }
 
     private func startListening() {
+        stop()
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .measurement, options: [])
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Tuner audio session error: \(error)")
+            return
+        }
+
         let engine = AVAudioEngine()
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
         let sampleRate = format.sampleRate
+
+        guard sampleRate > 0, format.channelCount > 0 else {
+            print("Tuner: Invalid audio format")
+            return
+        }
 
         input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
             guard let self else { return }
@@ -72,26 +94,26 @@ class TunerViewModel {
         }
 
         do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.record, mode: .measurement)
-            try session.setActive(true)
+            engine.prepare()
             try engine.start()
             self.audioEngine = engine
             isListening = true
         } catch {
-            print("Tuner start error: \(error)")
+            print("Tuner engine start error: \(error)")
         }
     }
 
     nonisolated private func detectPitch(buffer: AVAudioPCMBuffer, sampleRate: Double) -> Double {
         guard let channelData = buffer.floatChannelData?[0] else { return 0 }
         let count = Int(buffer.frameLength)
+        guard count > 0 else { return 0 }
 
         var rms: Float = 0
         vDSP_rmsqv(channelData, 1, &rms, vDSP_Length(count))
         guard rms > 0.01 else { return 0 }
 
         let halfCount = count / 2
+        guard halfCount > 0 else { return 0 }
         var autocorrelation = [Float](repeating: 0, count: halfCount)
 
         for lag in 0..<halfCount {
@@ -115,6 +137,17 @@ class TunerViewModel {
         }
 
         guard bestValue > autocorrelation[0] * 0.2 else { return 0 }
+
+        if bestLag > minLag && bestLag < maxLag {
+            let y0 = autocorrelation[bestLag - 1]
+            let y1 = autocorrelation[bestLag]
+            let y2 = autocorrelation[bestLag + 1]
+            let denom = y0 - 2 * y1 + y2
+            if abs(denom) > 1e-10 {
+                let correction = 0.5 * (y0 - y2) / denom
+                return sampleRate / (Double(bestLag) + Double(correction))
+            }
+        }
 
         return sampleRate / Double(bestLag)
     }

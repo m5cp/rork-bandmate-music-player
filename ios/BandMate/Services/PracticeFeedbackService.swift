@@ -4,6 +4,12 @@ import Foundation
 class PracticeFeedbackService {
     static let shared = PracticeFeedbackService()
 
+    private var toolkitURL: String {
+        let url = Config.EXPO_PUBLIC_TOOLKIT_URL
+        if !url.isEmpty { return url }
+        return "https://toolkit.rork.com"
+    }
+
     func analyzePractice(
         songTitle: String,
         instrument: Instrument,
@@ -15,12 +21,7 @@ class PracticeFeedbackService {
         practiceDuration: TimeInterval,
         audioURL: URL?
     ) async throws -> PracticeFeedback {
-        let baseURL = Config.EXPO_PUBLIC_TOOLKIT_URL
-        guard !baseURL.isEmpty else {
-            throw PracticeFeedbackError.configurationMissing
-        }
-
-        let endpoint = baseURL.hasSuffix("/") ? "\(baseURL)agent/chat" : "\(baseURL)/agent/chat"
+        let endpoint = toolkitURL.hasSuffix("/") ? "\(toolkitURL)agent/chat" : "\(toolkitURL)/agent/chat"
         guard let url = URL(string: endpoint) else {
             throw PracticeFeedbackError.invalidURL
         }
@@ -45,9 +46,6 @@ class PracticeFeedbackService {
                     "role": "user",
                     "content": prompt
                 ]
-            ],
-            "response_format": [
-                "type": "json_object"
             ]
         ]
 
@@ -55,15 +53,29 @@ class PracticeFeedbackService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        request.timeoutInterval = 60
+        request.timeoutInterval = 120
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw PracticeFeedbackError.serverError
         }
 
-        let aiResponse = try parseAIResponse(data)
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let bodyStr = String(data: data, encoding: .utf8) ?? "no body"
+            print("Practice feedback API error \(httpResponse.statusCode): \(bodyStr)")
+            throw PracticeFeedbackError.serverError
+        }
+
+        let responseText = extractTextFromResponse(data)
+
+        guard let jsonString = extractJSON(from: responseText),
+              let jsonData = jsonString.data(using: .utf8) else {
+            throw PracticeFeedbackError.parsingError
+        }
+
+        let aiResponse = try JSONDecoder().decode(AIFeedbackResponse.self, from: jsonData)
+
         return PracticeFeedback(
             overallScore: aiResponse.overallScore,
             summary: aiResponse.summary,
@@ -75,37 +87,79 @@ class PracticeFeedbackService {
         )
     }
 
-    private func parseAIResponse(_ data: Data) throws -> AIFeedbackResponse {
-        if let directResponse = try? JSONDecoder().decode(AIFeedbackResponse.self, from: data) {
-            return directResponse
+    private func extractTextFromResponse(_ data: Data) -> String {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return String(data: data, encoding: .utf8) ?? ""
         }
 
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw PracticeFeedbackError.parsingError
+        if let text = json["text"] as? String { return text }
+        if let content = json["content"] as? String { return content }
+
+        if let message = json["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content
+        }
+
+        if let messages = json["messages"] as? [[String: Any]] {
+            for msg in messages.reversed() {
+                if let role = msg["role"] as? String, role == "assistant" {
+                    if let content = msg["content"] as? String { return content }
+                    if let parts = msg["parts"] as? [[String: Any]] {
+                        for part in parts {
+                            if let type = part["type"] as? String, type == "text",
+                               let text = part["text"] as? String { return text }
+                        }
+                    }
+                }
+            }
+            if let last = messages.last,
+               let content = last["content"] as? String { return content }
         }
 
         if let choices = json["choices"] as? [[String: Any]],
            let message = choices.first?["message"] as? [String: Any],
-           let content = message["content"] as? String,
-           let contentData = content.data(using: .utf8) {
-            if let parsed = try? JSONDecoder().decode(AIFeedbackResponse.self, from: contentData) {
-                return parsed
+           let content = message["content"] as? String {
+            return content
+        }
+
+        if let result = json["result"] as? String { return result }
+        if let output = json["output"] as? String { return output }
+        if let response = json["response"] as? String { return response }
+
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    private func extractJSON(from text: String) -> String? {
+        var cleaned = text
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let data = cleaned.data(using: .utf8),
+           let _ = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            return cleaned
+        }
+
+        var depth = 0
+        var startIndex: String.Index?
+        for (i, char) in cleaned.enumerated() {
+            let idx = cleaned.index(cleaned.startIndex, offsetBy: i)
+            if char == "{" {
+                if depth == 0 { startIndex = idx }
+                depth += 1
+            } else if char == "}" {
+                depth -= 1
+                if depth == 0, let start = startIndex {
+                    let jsonSubstring = String(cleaned[start...idx])
+                    if let data = jsonSubstring.data(using: .utf8),
+                       let _ = try? JSONSerialization.jsonObject(with: data) {
+                        return jsonSubstring
+                    }
+                }
             }
         }
 
-        if let content = json["content"] as? String,
-           let contentData = content.data(using: .utf8),
-           let parsed = try? JSONDecoder().decode(AIFeedbackResponse.self, from: contentData) {
-            return parsed
-        }
-
-        if let text = json["text"] as? String,
-           let textData = text.data(using: .utf8),
-           let parsed = try? JSONDecoder().decode(AIFeedbackResponse.self, from: textData) {
-            return parsed
-        }
-
-        throw PracticeFeedbackError.parsingError
+        return nil
     }
 
     private func buildNotesSummary(_ notes: [MusicNote]) -> String {
@@ -154,7 +208,7 @@ class PracticeFeedbackService {
         SKILL LEVEL GUIDANCE:
         \(skillLevelGuidance(skillLevel))
 
-        Respond with ONLY valid JSON in this exact format:
+        Respond with ONLY valid JSON in this exact format (no markdown, no code blocks):
         {
             "overallScore": <number 1-100>,
             "summary": "<2-3 sentence overall assessment>",

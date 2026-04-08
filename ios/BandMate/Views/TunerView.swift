@@ -29,6 +29,30 @@ struct TunerView: View {
         .onDisappear {
             viewModel.stop()
         }
+        .overlay {
+            if viewModel.permissionDenied {
+                VStack(spacing: 16) {
+                    Image(systemName: "mic.slash.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.secondary)
+                    Text("Microphone Access Required")
+                        .font(.headline)
+                    Text("Enable microphone access in Settings to use the tuner.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                    Button("Open Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.ultraThinMaterial)
+            }
+        }
     }
 
     private var noteDisplay: some View {
