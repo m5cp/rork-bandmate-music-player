@@ -41,6 +41,7 @@ struct ToolsView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Tools")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

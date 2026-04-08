@@ -13,8 +13,13 @@ class TunerViewModel {
     var referencePitch: Double = 440.0
     var targetFrequency: Double = 440.0
     var permissionDenied: Bool = false
+    var isPlayingTone: Bool = false
+    var inTuneTrigger: Int = 0
 
     private var audioEngine: AVAudioEngine?
+    private var toneEngine: AVAudioEngine?
+    private var tonePlayerNode: AVAudioPlayerNode?
+    private var toneBuffer: AVAudioPCMBuffer?
 
     private let noteNames = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]
 
@@ -51,6 +56,73 @@ class TunerViewModel {
             engine.stop()
         }
         audioEngine = nil
+        stopReferenceTone()
+    }
+
+    func toggleReferenceTone() {
+        if isPlayingTone {
+            stopReferenceTone()
+        } else {
+            playReferenceTone()
+        }
+    }
+
+    func playReferenceTone() {
+        stopReferenceTone()
+
+        let engine = AVAudioEngine()
+        let player = AVAudioPlayerNode()
+        engine.attach(player)
+
+        let sampleRate: Double = 44100
+        let duration: Double = 10.0
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+        engine.connect(player, to: engine.mainMixerNode, format: format)
+
+        let frameCount = AVAudioFrameCount(sampleRate * duration)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
+        buffer.frameLength = frameCount
+
+        guard let channelData = buffer.floatChannelData?[0] else { return }
+        let freq = targetFrequency
+        for i in 0..<Int(frameCount) {
+            let t = Double(i) / sampleRate
+            let fadeIn = min(1.0, t / 0.05)
+            let fadeOut = min(1.0, (duration - t) / 0.05)
+            let envelope = Float(fadeIn * fadeOut)
+            channelData[i] = Float(sin(2.0 * Double.pi * freq * t)) * 0.3 * envelope
+        }
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            if !isListening {
+                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                try session.setActive(true)
+            }
+            engine.prepare()
+            try engine.start()
+            player.play()
+            player.scheduleBuffer(buffer, at: nil, options: .loops)
+
+            toneEngine = engine
+            tonePlayerNode = player
+            toneBuffer = buffer
+            isPlayingTone = true
+        } catch {
+            print("Reference tone error: \(error)")
+        }
+    }
+
+    func stopReferenceTone() {
+        tonePlayerNode?.stop()
+        toneEngine?.stop()
+        if let player = tonePlayerNode {
+            toneEngine?.detach(player)
+        }
+        toneEngine = nil
+        tonePlayerNode = nil
+        toneBuffer = nil
+        isPlayingTone = false
     }
 
     private func requestMicPermission() async -> Bool {
@@ -66,7 +138,7 @@ class TunerViewModel {
 
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.record, mode: .measurement, options: [])
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .mixWithOthers])
             try session.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
             print("Tuner audio session error: \(error)")
@@ -88,7 +160,12 @@ class TunerViewModel {
             let frequency = self.detectPitch(buffer: buffer, sampleRate: sampleRate)
             Task { @MainActor in
                 if frequency > 60 && frequency < 2000 {
+                    let wasInTune = abs(self.centsOff) < 5
                     self.updatePitch(frequency)
+                    let isNowInTune = abs(self.centsOff) < 5
+                    if isNowInTune && !wasInTune {
+                        self.inTuneTrigger += 1
+                    }
                 }
             }
         }

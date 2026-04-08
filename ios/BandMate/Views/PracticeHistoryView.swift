@@ -4,18 +4,40 @@ import SwiftData
 struct PracticeHistoryView: View {
     @Query(sort: \PracticeSession.date, order: .reverse) private var sessions: [PracticeSession]
     @State private var selectedSession: PracticeSession?
+    @State private var selectedSegment: HistorySegment = .history
+    @State private var gamification = GamificationManager.shared
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    nonisolated enum HistorySegment: String, CaseIterable {
+        case history = "History"
+        case achievements = "Achievements"
+    }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if sessions.isEmpty {
-                    emptyState
-                } else {
-                    sessionsList
+            VStack(spacing: 0) {
+                Picker("Section", selection: $selectedSegment) {
+                    ForEach(HistorySegment.allCases, id: \.rawValue) { segment in
+                        Text(segment.rawValue).tag(segment)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+                Group {
+                    switch selectedSegment {
+                    case .history:
+                        historyContent
+                    case .achievements:
+                        achievementsContent
+                    }
                 }
             }
-            .navigationTitle("Practice History")
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Progress")
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $selectedSession) { session in
                 if let feedback = session.feedback {
                     let instrument = Instrument(rawValue: session.instrument) ?? .trumpet
@@ -47,6 +69,15 @@ struct PracticeHistoryView: View {
         }
     }
 
+    @ViewBuilder
+    private var historyContent: some View {
+        if sessions.isEmpty {
+            emptyState
+        } else {
+            sessionsList
+        }
+    }
+
     private var emptyState: some View {
         VStack(spacing: 16) {
             Image(systemName: "music.mic")
@@ -66,6 +97,10 @@ struct PracticeHistoryView: View {
     private var sessionsList: some View {
         List {
             if !sessions.isEmpty {
+                streakCard
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+
                 statsHeader
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
@@ -82,6 +117,65 @@ struct PracticeHistoryView: View {
             .onDelete(perform: deleteSessions)
         }
         .listStyle(.insetGrouped)
+    }
+
+    private var streakCard: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill")
+                        .foregroundStyle(.orange)
+                    Text("Practice Streak")
+                        .font(.subheadline.weight(.bold))
+                }
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(gamification.currentStreak)")
+                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.orange)
+                    Text(gamification.currentStreak == 1 ? "day" : "days")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 8) {
+                HStack(spacing: 4) {
+                    Image(systemName: "trophy.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.yellow)
+                    Text("Best: \(gamification.longestStreak)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 4) {
+                    Image(systemName: "medal.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.mint)
+                    Text("\(gamification.unlockedCount)/\(gamification.achievements.count)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding()
+        .background(
+            LinearGradient(
+                colors: [.orange.opacity(0.1), .yellow.opacity(0.06)],
+                startPoint: .leading,
+                endPoint: .trailing
+            ),
+            in: .rect(cornerRadius: 14)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(.orange.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 
     private var statsHeader: some View {
@@ -113,6 +207,67 @@ struct PracticeHistoryView: View {
         .frame(maxWidth: horizontalSizeClass == .regular ? 700 : .infinity)
     }
 
+    private var achievementsContent: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                achievementsSummaryCard
+                    .padding(.top, 8)
+
+                LazyVStack(spacing: 0) {
+                    ForEach(gamification.achievements) { achievement in
+                        AchievementRow(achievement: achievement)
+
+                        if achievement.id != gamification.achievements.last?.id {
+                            Divider()
+                                .padding(.leading, 72)
+                        }
+                    }
+                }
+                .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 12))
+                .padding(.horizontal)
+            }
+            .padding(.bottom, 16)
+        }
+    }
+
+    private var achievementsSummaryCard: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 24) {
+                VStack(spacing: 4) {
+                    Text("\(gamification.unlockedCount)")
+                        .font(.system(size: 36, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.mint)
+                    Text("Unlocked")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(spacing: 4) {
+                    Text("\(gamification.achievements.count - gamification.unlockedCount)")
+                        .font(.system(size: 36, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.tertiary)
+                    Text("Locked")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                VStack(spacing: 4) {
+                    Text("\(gamification.uniqueInstruments.count)")
+                        .font(.system(size: 36, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.purple)
+                    Text("Instruments")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 14))
+        .padding(.horizontal)
+    }
+
     @Environment(\.modelContext) private var modelContext
 
     private func deleteSessions(at offsets: IndexSet) {
@@ -129,6 +284,50 @@ struct PracticeHistoryView: View {
             return "\(hours)h \(mins)m"
         }
         return "\(minutes)m"
+    }
+}
+
+struct AchievementRow: View {
+    let achievement: Achievement
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(achievement.unlocked
+                        ? LinearGradient(colors: [.yellow, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        : LinearGradient(colors: [Color(.quaternarySystemFill), Color(.tertiarySystemFill)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 48, height: 48)
+
+                Image(systemName: achievement.icon)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(achievement.unlocked ? Color.white : Color(.tertiaryLabel))
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(achievement.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(achievement.unlocked ? .primary : .secondary)
+
+                Text(achievement.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if achievement.unlocked {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.green)
+            } else {
+                Image(systemName: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 }
 

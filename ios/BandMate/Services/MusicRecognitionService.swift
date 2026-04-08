@@ -32,16 +32,29 @@ class MusicRecognitionService {
 
         processingStatus = "Analyzing sheet music..."
 
-        do {
-            let result = try await sendToAI(base64Image: base64Image)
-            processingStatus = "Complete!"
-            isProcessing = false
-            return result
-        } catch {
-            errorMessage = "Analysis failed: \(error.localizedDescription)"
-            isProcessing = false
-            return nil
+        for attempt in 0..<3 {
+            if attempt > 0 {
+                processingStatus = "Retrying analysis (attempt \(attempt + 1))..."
+                try? await Task.sleep(for: .seconds(2 * attempt))
+            }
+
+            do {
+                let result = try await sendToAI(base64Image: base64Image)
+                processingStatus = "Complete!"
+                isProcessing = false
+                return result
+            } catch {
+                print("Analysis attempt \(attempt + 1) failed: \(error)")
+                if attempt == 2 {
+                    errorMessage = "Analysis failed after multiple attempts. Please try again."
+                    isProcessing = false
+                    return nil
+                }
+            }
         }
+
+        isProcessing = false
+        return nil
     }
 
     private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
@@ -153,7 +166,6 @@ class MusicRecognitionService {
         }
 
         if let text = json["text"] as? String { return text }
-
         if let content = json["content"] as? String { return content }
 
         if let message = json["message"] as? [String: Any],
@@ -291,7 +303,7 @@ nonisolated enum MusicRecognitionError: Error, LocalizedError, Sendable {
 
     var errorDescription: String? {
         switch self {
-        case .serverError: "Server returned an error"
+        case .serverError: "Server returned an error. Please try again."
         case .parsingFailed: "Failed to parse music data"
         }
     }

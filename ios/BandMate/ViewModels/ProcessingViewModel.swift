@@ -30,6 +30,7 @@ class ProcessingViewModel {
         )
         song.setNotes(music.notes)
         modelContext.insert(song)
+        GamificationManager.shared.recordSongScanned()
         return song
     }
 }

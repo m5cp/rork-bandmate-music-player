@@ -30,7 +30,7 @@ struct ContentView: View {
             Tab("Library", systemImage: "books.vertical.fill", value: 2) {
                 LibraryView()
             }
-            Tab("History", systemImage: "clock.arrow.circlepath", value: 3) {
+            Tab("Progress", systemImage: "chart.bar.fill", value: 3) {
                 PracticeHistoryView()
             }
         }

@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import AudioToolbox
 
 struct MetronomeView: View {
     @State private var bpm: Double = 120
@@ -12,37 +13,40 @@ struct MetronomeView: View {
     @State private var ringScale: CGFloat = 0.8
     @State private var pendulumAngle: Double = 0
     @State private var pulsePhase: Bool = false
-    @State private var clickEngine: MetronomeClickEngine?
+    @State private var clickPlayer: AVAudioPlayer?
+    @State private var accentPlayer: AVAudioPlayer?
+    @State private var beatTrigger: Int = 0
 
     private let bpmRange: ClosedRange<Double> = 40...240
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 0) {
+                beatVisualization
+                    .padding(.top, 16)
+                    .padding(.bottom, 32)
 
-            beatVisualization
-                .padding(.bottom, 40)
+                tempoDisplay
+                    .padding(.bottom, 24)
 
-            tempoDisplay
-                .padding(.bottom, 32)
+                tempoDialControl
+                    .padding(.bottom, 24)
 
-            tempoDialControl
-                .padding(.bottom, 32)
+                timeSignatureSelector
+                    .padding(.bottom, 32)
 
-            timeSignatureSelector
-                .padding(.bottom, 40)
-
-            playButton
-
-            Spacer()
+                playButton
+                    .padding(.bottom, 24)
+            }
+            .padding(.horizontal)
         }
-        .padding(.horizontal)
+        .scrollIndicators(.hidden)
+        .sensoryFeedback(.impact(weight: .heavy, intensity: 1.0), trigger: beatTrigger)
         .onAppear {
-            clickEngine = MetronomeClickEngine()
+            prepareAudioPlayers()
         }
         .onDisappear {
             stopMetronome()
-            clickEngine?.cleanup()
         }
     }
 
@@ -157,7 +161,6 @@ struct MetronomeView: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.blue)
                 }
-                .sensoryFeedback(.impact(flexibility: .soft), trigger: bpm)
 
                 Slider(value: $bpm, in: bpmRange, step: 1)
                     .tint(.blue)
@@ -175,7 +178,6 @@ struct MetronomeView: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.blue)
                 }
-                .sensoryFeedback(.impact(flexibility: .soft), trigger: bpm)
             }
 
             HStack(spacing: 12) {
@@ -267,6 +269,55 @@ struct MetronomeView: View {
         if isPlaying { restartMetronome() }
     }
 
+    private func prepareAudioPlayers() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+        } catch {
+            print("Audio session error: \(error)")
+        }
+
+        clickPlayer = generateTonePlayer(frequency: 800, duration: 0.03, amplitude: 0.5)
+        accentPlayer = generateTonePlayer(frequency: 1200, duration: 0.04, amplitude: 0.8)
+    }
+
+    private func generateTonePlayer(frequency: Double, duration: Double, amplitude: Float) -> AVAudioPlayer? {
+        let sampleRate: Double = 44100
+        let frameCount = Int(sampleRate * duration)
+        let dataSize = frameCount * 2
+        var audioData = Data()
+
+        let headerSize = 44
+        var header = Data(count: headerSize)
+        let totalSize = UInt32(headerSize + dataSize)
+        header.replaceSubrange(0..<4, with: "RIFF".data(using: .ascii)!)
+        withUnsafeBytes(of: (totalSize - 8).littleEndian) { header.replaceSubrange(4..<8, with: $0) }
+        header.replaceSubrange(8..<12, with: "WAVE".data(using: .ascii)!)
+        header.replaceSubrange(12..<16, with: "fmt ".data(using: .ascii)!)
+        withUnsafeBytes(of: UInt32(16).littleEndian) { header.replaceSubrange(16..<20, with: $0) }
+        withUnsafeBytes(of: UInt16(1).littleEndian) { header.replaceSubrange(20..<22, with: $0) }
+        withUnsafeBytes(of: UInt16(1).littleEndian) { header.replaceSubrange(22..<24, with: $0) }
+        withUnsafeBytes(of: UInt32(sampleRate).littleEndian) { header.replaceSubrange(24..<28, with: $0) }
+        withUnsafeBytes(of: UInt32(sampleRate * 2).littleEndian) { header.replaceSubrange(28..<32, with: $0) }
+        withUnsafeBytes(of: UInt16(2).littleEndian) { header.replaceSubrange(32..<34, with: $0) }
+        withUnsafeBytes(of: UInt16(16).littleEndian) { header.replaceSubrange(34..<36, with: $0) }
+        header.replaceSubrange(36..<40, with: "data".data(using: .ascii)!)
+        withUnsafeBytes(of: UInt32(dataSize).littleEndian) { header.replaceSubrange(40..<44, with: $0) }
+        audioData.append(header)
+
+        for i in 0..<frameCount {
+            let t = Double(i) / sampleRate
+            let envelope = Float(1.0 - (t / duration))
+            let attack: Float = min(1.0, Float(t * sampleRate / 20.0))
+            let sample = sin(2.0 * Double.pi * frequency * t)
+            let value = Int16(Float(sample) * amplitude * envelope * envelope * attack * 32767)
+            withUnsafeBytes(of: value.littleEndian) { audioData.append(contentsOf: $0) }
+        }
+
+        return try? AVAudioPlayer(data: audioData)
+    }
+
     private func toggleMetronome() {
         if isPlaying {
             stopMetronome()
@@ -278,7 +329,8 @@ struct MetronomeView: View {
     private func startMetronome() {
         isPlaying = true
         currentBeat = 0
-        clickEngine?.start()
+        clickPlayer?.prepareToPlay()
+        accentPlayer?.prepareToPlay()
         runMetronome()
     }
 
@@ -287,7 +339,11 @@ struct MetronomeView: View {
         metronomeTask?.cancel()
         metronomeTask = nil
         currentBeat = 0
-        clickEngine?.stop()
+        withAnimation(.easeOut(duration: 0.3)) {
+            flashOpacity = 0
+            pulsePhase = false
+            pendulumAngle = 0
+        }
     }
 
     private func restartMetronome() {
@@ -301,7 +357,9 @@ struct MetronomeView: View {
         metronomeTask = Task {
             while !Task.isCancelled && isPlaying {
                 let isDownbeat = currentBeat == 0
-                clickEngine?.playClick(isDownbeat: isDownbeat)
+
+                playClick(isDownbeat: isDownbeat)
+                beatTrigger += 1
                 triggerBeatAnimation(isDownbeat: isDownbeat)
 
                 let interval = 60.0 / bpm
@@ -310,6 +368,16 @@ struct MetronomeView: View {
                 guard !Task.isCancelled else { return }
                 currentBeat = (currentBeat + 1) % beatsPerMeasure
             }
+        }
+    }
+
+    private func playClick(isDownbeat: Bool) {
+        if isDownbeat {
+            accentPlayer?.currentTime = 0
+            accentPlayer?.play()
+        } else {
+            clickPlayer?.currentTime = 0
+            clickPlayer?.play()
         }
     }
 
@@ -331,91 +399,5 @@ struct MetronomeView: View {
             pulsePhase = false
             ringScale = 0.8
         }
-    }
-}
-
-@MainActor
-class MetronomeClickEngine {
-    private var engine: AVAudioEngine?
-    private var playerNode: AVAudioPlayerNode?
-    private var highClickBuffer: AVAudioPCMBuffer?
-    private var lowClickBuffer: AVAudioPCMBuffer?
-
-    init() {
-        setupEngine()
-    }
-
-    private func setupEngine() {
-        let engine = AVAudioEngine()
-        let player = AVAudioPlayerNode()
-
-        engine.attach(player)
-
-        let sampleRate: Double = 44100
-        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
-
-        engine.connect(player, to: engine.mainMixerNode, format: format)
-
-        highClickBuffer = generateClickBuffer(frequency: 1200, duration: 0.03, sampleRate: sampleRate, amplitude: 0.8, format: format)
-        lowClickBuffer = generateClickBuffer(frequency: 800, duration: 0.025, sampleRate: sampleRate, amplitude: 0.5, format: format)
-
-        self.engine = engine
-        self.playerNode = player
-    }
-
-    private func generateClickBuffer(frequency: Double, duration: Double, sampleRate: Double, amplitude: Float, format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        let frameCount = AVAudioFrameCount(sampleRate * duration)
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return nil }
-        buffer.frameLength = frameCount
-
-        guard let channelData = buffer.floatChannelData?[0] else { return nil }
-
-        for i in 0..<Int(frameCount) {
-            let t = Double(i) / sampleRate
-            let envelope = Float(1.0 - (t / duration))
-            let attackEnvelope: Float = min(1.0, Float(t * sampleRate / 20.0))
-            let sample = sin(2.0 * Double.pi * frequency * t)
-            channelData[i] = Float(sample) * amplitude * envelope * envelope * attackEnvelope
-        }
-
-        return buffer
-    }
-
-    func start() {
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-            try session.setActive(true)
-            engine?.prepare()
-            try engine?.start()
-            playerNode?.play()
-        } catch {
-            print("Metronome engine start error: \(error)")
-        }
-    }
-
-    func stop() {
-        playerNode?.stop()
-        engine?.stop()
-    }
-
-    func playClick(isDownbeat: Bool) {
-        guard let player = playerNode,
-              let buffer = isDownbeat ? highClickBuffer : lowClickBuffer else { return }
-
-        if engine?.isRunning != true {
-            start()
-        }
-
-        player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
-    }
-
-    func cleanup() {
-        stop()
-        if let player = playerNode {
-            engine?.detach(player)
-        }
-        engine = nil
-        playerNode = nil
     }
 }

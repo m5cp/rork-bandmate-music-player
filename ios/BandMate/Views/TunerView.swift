@@ -6,26 +6,31 @@ struct TunerView: View {
     @State private var viewModel = TunerViewModel()
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 0) {
+                noteDisplay
+                    .padding(.top, 16)
+                    .padding(.bottom, 24)
 
-            noteDisplay
-                .padding(.bottom, 24)
+                pitchIndicator
+                    .padding(.bottom, 32)
 
-            pitchIndicator
-                .padding(.bottom, 32)
+                frequencyDisplay
+                    .padding(.bottom, 32)
 
-            frequencyDisplay
-                .padding(.bottom, 40)
+                referenceToneButton
+                    .padding(.bottom, 20)
 
-            referenceSelector
-                .padding(.bottom, 24)
+                referenceSelector
+                    .padding(.bottom, 32)
 
-            micButton
-
-            Spacer()
+                micButton
+                    .padding(.bottom, 24)
+            }
+            .padding(.horizontal)
         }
-        .padding(.horizontal)
+        .scrollIndicators(.hidden)
+        .sensoryFeedback(.success, trigger: viewModel.inTuneTrigger)
         .onDisappear {
             viewModel.stop()
         }
@@ -72,7 +77,7 @@ struct TunerView: View {
                     .font(.system(size: 80, weight: .bold, design: .rounded))
                     .foregroundStyle(.tertiary)
 
-                Text("Tap to start")
+                Text("Tap mic to start")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -149,6 +154,31 @@ struct TunerView: View {
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private var referenceToneButton: some View {
+        Button {
+            viewModel.toggleReferenceTone()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: viewModel.isPlayingTone ? "speaker.wave.2.fill" : "speaker.fill")
+                    .font(.subheadline.weight(.bold))
+                    .contentTransition(.symbolEffect(.replace))
+                Text(viewModel.isPlayingTone ? "Stop Reference Tone" : "Play Reference Tone")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .foregroundStyle(viewModel.isPlayingTone ? .white : .blue)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                viewModel.isPlayingTone
+                    ? AnyShapeStyle(LinearGradient(colors: [.blue, .cyan], startPoint: .leading, endPoint: .trailing))
+                    : AnyShapeStyle(Color.blue.opacity(0.12)),
+                in: Capsule()
+            )
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.impact(weight: .light), trigger: viewModel.isPlayingTone)
     }
 
     private var referenceSelector: some View {

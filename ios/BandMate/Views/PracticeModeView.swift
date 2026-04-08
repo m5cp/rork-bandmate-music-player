@@ -491,6 +491,11 @@ struct PracticeModeView: View {
         )
         session.setFeedback(feedback)
         modelContext.insert(session)
+
+        GamificationManager.shared.recordPracticeSession(
+            instrument: activeInstrument.rawValue,
+            durationSeconds: viewModel.elapsedTime
+        )
     }
 }
 
