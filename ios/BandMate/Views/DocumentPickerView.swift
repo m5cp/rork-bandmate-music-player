@@ -3,43 +3,46 @@ import UniformTypeIdentifiers
 import PDFKit
 
 struct DocumentPickerView: UIViewControllerRepresentable {
-    let onImageSelected: (UIImage) -> Void
+    let onImagesSelected: ([UIImage]) -> Void
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let types: [UTType] = [.pdf, .image, .png, .jpeg]
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: types)
         picker.delegate = context.coordinator
-        picker.allowsMultipleSelection = false
+        picker.allowsMultipleSelection = true
         return picker
     }
 
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
 
-    func makeCoordinator() -> Coordinator { Coordinator(onImageSelected: onImageSelected) }
+    func makeCoordinator() -> Coordinator { Coordinator(onImagesSelected: onImagesSelected) }
 
     class Coordinator: NSObject, UIDocumentPickerDelegate {
-        let onImageSelected: @MainActor (UIImage) -> Void
+        let onImagesSelected: @MainActor ([UIImage]) -> Void
 
-        init(onImageSelected: @escaping @MainActor (UIImage) -> Void) {
-            self.onImageSelected = onImageSelected
+        init(onImagesSelected: @escaping @MainActor ([UIImage]) -> Void) {
+            self.onImagesSelected = onImagesSelected
         }
 
         nonisolated func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let url = urls.first else { return }
-            let accessing = url.startAccessingSecurityScopedResource()
-
-            let callback = onImageSelected
+            let callback = onImagesSelected
             Task { @MainActor in
-                defer {
-                    if accessing { url.stopAccessingSecurityScopedResource() }
-                }
-                if url.pathExtension.lowercased() == "pdf" {
-                    if let image = renderPDFFirstPage(url: url) {
-                        callback(image)
+                var allImages: [UIImage] = []
+                for url in urls {
+                    let accessing = url.startAccessingSecurityScopedResource()
+                    defer {
+                        if accessing { url.stopAccessingSecurityScopedResource() }
                     }
-                } else if let data = try? Data(contentsOf: url),
-                          let image = UIImage(data: data) {
-                    callback(image)
+                    if url.pathExtension.lowercased() == "pdf" {
+                        let pages = renderAllPDFPages(url: url)
+                        allImages.append(contentsOf: pages)
+                    } else if let data = try? Data(contentsOf: url),
+                              let image = UIImage(data: data) {
+                        allImages.append(image)
+                    }
+                }
+                if !allImages.isEmpty {
+                    callback(allImages)
                 }
             }
         }
@@ -48,19 +51,24 @@ struct DocumentPickerView: UIViewControllerRepresentable {
     }
 }
 
-private func renderPDFFirstPage(url: URL) -> UIImage? {
-    guard let document = PDFDocument(url: url),
-          let page = document.page(at: 0) else { return nil }
-
-    let pageRect = page.bounds(for: .mediaBox)
+private func renderAllPDFPages(url: URL) -> [UIImage] {
+    guard let document = PDFDocument(url: url) else { return [] }
+    var images: [UIImage] = []
     let scale: CGFloat = 2.0
-    let renderSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
 
-    let renderer = UIGraphicsImageRenderer(size: renderSize)
-    return renderer.image { context in
-        UIColor.white.setFill()
-        context.fill(CGRect(origin: .zero, size: renderSize))
-        context.cgContext.scaleBy(x: scale, y: scale)
-        page.draw(with: .mediaBox, to: context.cgContext)
+    for i in 0..<document.pageCount {
+        guard let page = document.page(at: i) else { continue }
+        let pageRect = page.bounds(for: .mediaBox)
+        let renderSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
+
+        let renderer = UIGraphicsImageRenderer(size: renderSize)
+        let image = renderer.image { context in
+            UIColor.white.setFill()
+            context.fill(CGRect(origin: .zero, size: renderSize))
+            context.cgContext.scaleBy(x: scale, y: scale)
+            page.draw(with: .mediaBox, to: context.cgContext)
+        }
+        images.append(image)
     }
+    return images
 }

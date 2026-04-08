@@ -6,7 +6,7 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Song.lastPlayedAt, order: .reverse) private var recentSongs: [Song]
     @State private var viewModel = HomeViewModel()
-    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var navigationPath = NavigationPath()
     @AppStorage("hasUsedApp") private var hasUsedApp: Bool = false
     @State private var showPracticeMode: Bool = false
@@ -60,14 +60,19 @@ struct HomeView: View {
                     viewModel.showCamera = false
                 }
             }
-            .photosPicker(isPresented: $viewModel.showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
-            .onChange(of: selectedPhotoItem) { _, newValue in
-                guard let item = newValue else { return }
+            .photosPicker(isPresented: $viewModel.showPhotoPicker, selection: $selectedPhotoItems, maxSelectionCount: 20, matching: .images)
+            .onChange(of: selectedPhotoItems) { _, newValue in
+                guard !newValue.isEmpty else { return }
                 Task {
-                    if let data = try? await item.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
-                        viewModel.handleSelectedImage(uiImage)
+                    var images: [UIImage] = []
+                    for item in newValue {
+                        if let data = try? await item.loadTransferable(type: Data.self),
+                           let uiImage = UIImage(data: data) {
+                            images.append(uiImage)
+                        }
                     }
+                    selectedPhotoItems = []
+                    viewModel.handleMultipleImages(images)
                 }
             }
             .onChange(of: viewModel.showProcessing) { _, show in
@@ -78,9 +83,9 @@ struct HomeView: View {
                 }
             }
             .sheet(isPresented: $viewModel.showDocumentPicker) {
-                DocumentPickerView { image in
-                    viewModel.handleSelectedImage(image)
+                DocumentPickerView { images in
                     viewModel.showDocumentPicker = false
+                    viewModel.handleMultipleImages(images)
                 }
             }
             .fullScreenCover(isPresented: $showPracticeMode) {
