@@ -14,21 +14,27 @@ class MusicRecognitionService {
         return "https://toolkit.rork.com"
     }
 
+    private var projectId: String {
+        Config.EXPO_PUBLIC_PROJECT_ID
+    }
+
     func analyzeSheetMusic(image: UIImage) async -> ParsedMusic? {
         isProcessing = true
         processingStatus = "Preparing image..."
         errorMessage = nil
 
-        let maxDimension: CGFloat = 1024
+        let maxDimension: CGFloat = 768
         let resized = resizeImage(image, maxDimension: maxDimension)
 
-        guard let imageData = resized.jpegData(compressionQuality: 0.7) else {
+        guard let imageData = resized.jpegData(compressionQuality: 0.5) else {
             errorMessage = "Failed to process image"
             isProcessing = false
             return nil
         }
 
         let base64Image = imageData.base64EncodedString()
+        let imageSizeKB = imageData.count / 1024
+        print("Sheet music image size: \(imageSizeKB) KB")
 
         processingStatus = "Analyzing sheet music..."
 
@@ -43,10 +49,17 @@ class MusicRecognitionService {
                 processingStatus = "Complete!"
                 isProcessing = false
                 return result
+            } catch let error as MusicRecognitionError {
+                print("Analysis attempt \(attempt + 1) failed: \(error.errorDescription ?? "")")
+                if attempt == 2 {
+                    errorMessage = error.errorDescription
+                    isProcessing = false
+                    return nil
+                }
             } catch {
                 print("Analysis attempt \(attempt + 1) failed: \(error)")
                 if attempt == 2 {
-                    errorMessage = "Analysis failed after multiple attempts. Please try again."
+                    errorMessage = "Analysis failed: \(error.localizedDescription)"
                     isProcessing = false
                     return nil
                 }
@@ -71,13 +84,16 @@ class MusicRecognitionService {
     private func sendToAI(base64Image: String) async throws -> ParsedMusic {
         let endpoint = toolkitURL.hasSuffix("/") ? "\(toolkitURL)agent/chat" : "\(toolkitURL)/agent/chat"
         guard let url = URL(string: endpoint) else {
-            throw MusicRecognitionError.serverError
+            throw MusicRecognitionError.invalidURL
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 120
+        if !projectId.isEmpty {
+            request.setValue(projectId, forHTTPHeaderField: "x-project-id")
+        }
+        request.timeoutInterval = 180
 
         let prompt = """
         Analyze this sheet music image. Extract all musical information and return ONLY a valid JSON object (no markdown, no code blocks) with this exact structure:
@@ -130,7 +146,16 @@ class MusicRecognitionService {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch let urlError as URLError {
+            print("Network error: \(urlError.code.rawValue) - \(urlError.localizedDescription)")
+            if urlError.code == .timedOut {
+                throw MusicRecognitionError.timeout
+            }
+            throw MusicRecognitionError.networkError(urlError.localizedDescription)
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw MusicRecognitionError.serverError
@@ -139,6 +164,9 @@ class MusicRecognitionService {
         guard (200...299).contains(httpResponse.statusCode) else {
             let bodyStr = String(data: data, encoding: .utf8) ?? "no body"
             print("Sheet music API error \(httpResponse.statusCode): \(bodyStr)")
+            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                throw MusicRecognitionError.authError
+            }
             throw MusicRecognitionError.serverError
         }
 
@@ -298,13 +326,21 @@ class MusicRecognitionService {
 }
 
 nonisolated enum MusicRecognitionError: Error, LocalizedError, Sendable {
+    case invalidURL
     case serverError
+    case authError
     case parsingFailed
+    case timeout
+    case networkError(String)
 
     var errorDescription: String? {
         switch self {
-        case .serverError: "Server returned an error. Please try again."
-        case .parsingFailed: "Failed to parse music data"
+        case .invalidURL: "Invalid service URL configuration."
+        case .serverError: "The AI service returned an error. Please try again in a moment."
+        case .authError: "Authentication failed. Please restart the app."
+        case .parsingFailed: "Could not read the music from the image. Try a clearer photo."
+        case .timeout: "Analysis took too long. Try with a smaller or clearer image."
+        case .networkError(let detail): "Network error: \(detail). Check your internet connection."
         }
     }
 }

@@ -88,6 +88,24 @@ struct HomeView: View {
                     viewModel.handleMultipleImages(images)
                 }
             }
+            .overlay {
+                if viewModel.isProcessingImages {
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .tint(.white)
+                            Text("Processing images...")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(32)
+                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 20))
+                    }
+                }
+            }
             .fullScreenCover(isPresented: $showPracticeMode) {
                 if let song = practiceTargetSong, let notes = song.parsedNotes {
                     let music = ParsedMusic(

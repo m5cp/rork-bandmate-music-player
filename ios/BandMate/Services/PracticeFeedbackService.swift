@@ -10,6 +10,10 @@ class PracticeFeedbackService {
         return "https://toolkit.rork.com"
     }
 
+    private var projectId: String {
+        Config.EXPO_PUBLIC_PROJECT_ID
+    }
+
     func analyzePractice(
         songTitle: String,
         instrument: Instrument,
@@ -52,8 +56,11 @@ class PracticeFeedbackService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if !projectId.isEmpty {
+            request.setValue(projectId, forHTTPHeaderField: "x-project-id")
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        request.timeoutInterval = 120
+        request.timeoutInterval = 180
 
         var lastError: Error = PracticeFeedbackError.serverError
         for attempt in 0..<3 {
@@ -62,7 +69,14 @@ class PracticeFeedbackService {
             }
 
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response): (Data, URLResponse)
+                do {
+                    (data, response) = try await URLSession.shared.data(for: request)
+                } catch let urlError as URLError {
+                    print("Practice feedback network error: \(urlError.code.rawValue)")
+                    lastError = PracticeFeedbackError.networkError(urlError.localizedDescription)
+                    continue
+                }
 
                 guard let httpResponse = response as? HTTPURLResponse else {
                     lastError = PracticeFeedbackError.serverError
@@ -76,7 +90,11 @@ class PracticeFeedbackService {
                         lastError = PracticeFeedbackError.serverError
                         continue
                     }
-                    throw PracticeFeedbackError.serverError
+                    if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                        throw PracticeFeedbackError.serverError
+                    }
+                    lastError = PracticeFeedbackError.serverError
+                    continue
                 }
 
                 let responseText = extractTextFromResponse(data)
@@ -320,14 +338,16 @@ nonisolated enum PracticeFeedbackError: Error, LocalizedError, Sendable {
     case serverError
     case parsingError
     case recordingFailed
+    case networkError(String)
 
     var errorDescription: String? {
         switch self {
-        case .configurationMissing: "AI service is not configured"
-        case .invalidURL: "Invalid service URL"
-        case .serverError: "The AI service is temporarily unavailable. Please try again."
+        case .configurationMissing: "AI service is not configured."
+        case .invalidURL: "Invalid service URL."
+        case .serverError: "The AI service is temporarily unavailable. Please try again in a moment."
         case .parsingError: "Could not process the feedback. Please try again."
-        case .recordingFailed: "Microphone recording failed"
+        case .recordingFailed: "Microphone recording failed. Check microphone permissions in Settings."
+        case .networkError(let detail): "Network error: \(detail). Check your internet connection."
         }
     }
 }

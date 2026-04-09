@@ -54,11 +54,14 @@ struct DocumentPickerView: UIViewControllerRepresentable {
 private func renderAllPDFPages(url: URL) -> [UIImage] {
     guard let document = PDFDocument(url: url) else { return [] }
     var images: [UIImage] = []
-    let scale: CGFloat = 2.0
+    let maxDimension: CGFloat = 1200
+    let maxPages = 20
 
-    for i in 0..<document.pageCount {
+    for i in 0..<min(document.pageCount, maxPages) {
         guard let page = document.page(at: i) else { continue }
         let pageRect = page.bounds(for: .mediaBox)
+        let longestSide = max(pageRect.width, pageRect.height)
+        let scale = longestSide > maxDimension ? maxDimension / longestSide : 1.0
         let renderSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
 
         let renderer = UIGraphicsImageRenderer(size: renderSize)
