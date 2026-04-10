@@ -130,6 +130,27 @@ struct WelcomeView: View {
     @ViewBuilder
     private func centerContent(size: CGSize) -> some View {
         VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button {
+                    withAnimation(.easeInOut(duration: 0.4)) {
+                        fadeOut = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        onContinue()
+                    }
+                } label: {
+                    Text("Skip")
+                        .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 60)
+            .padding(.trailing, 8)
+
             Spacer()
 
             ZStack {
