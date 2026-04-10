@@ -8,9 +8,7 @@ struct MetronomeView: View {
     @State private var currentBeat: Int = 0
     @State private var beatsPerMeasure: Int = 4
     @State private var metronomeTask: Task<Void, Never>?
-    @State private var beatScale: CGFloat = 1.0
     @State private var flashOpacity: Double = 0
-    @State private var ringScale: CGFloat = 0.8
     @State private var pendulumAngle: Double = 0
     @State private var pulsePhase: Bool = false
     @State private var clickPlayer: AVAudioPlayer?
@@ -20,27 +18,29 @@ struct MetronomeView: View {
     private let bpmRange: ClosedRange<Double> = 40...240
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                beatVisualization
-                    .padding(.top, 16)
-                    .padding(.bottom, 32)
+        VStack(spacing: 0) {
+            Spacer(minLength: 4)
 
-                tempoDisplay
-                    .padding(.bottom, 24)
+            beatVisualization
 
-                tempoDialControl
-                    .padding(.bottom, 24)
+            Spacer(minLength: 8)
 
-                timeSignatureSelector
-                    .padding(.bottom, 32)
+            tempoDisplay
+                .padding(.bottom, 8)
 
-                playButton
-                    .padding(.bottom, 24)
-            }
-            .padding(.horizontal)
+            tempoControls
+                .padding(.horizontal)
+                .padding(.bottom, 10)
+
+            timeSignatureSelector
+                .padding(.horizontal)
+                .padding(.bottom, 12)
+
+            playButton
+                .padding(.bottom, 8)
+
+            Spacer(minLength: 4)
         }
-        .scrollIndicators(.hidden)
         .sensoryFeedback(.impact(weight: .heavy, intensity: 1.0), trigger: beatTrigger)
         .onAppear {
             prepareAudioPlayers()
@@ -51,11 +51,11 @@ struct MetronomeView: View {
     }
 
     private var beatVisualization: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .stroke(Color.blue.opacity(0.08), lineWidth: 3)
-                    .frame(width: 160, height: 160)
+                    .stroke(Color.blue.opacity(0.08), lineWidth: 2)
+                    .frame(width: 120, height: 120)
 
                 Circle()
                     .stroke(
@@ -64,17 +64,17 @@ struct MetronomeView: View {
                             : Color.blue.opacity(0.3),
                         lineWidth: 2
                     )
-                    .frame(width: 160, height: 160)
-                    .scaleEffect(ringScale)
+                    .frame(width: 120, height: 120)
+                    .scaleEffect(isPlaying ? (pulsePhase ? 1.15 : 0.85) : 1.0)
                     .opacity(isPlaying ? 1 : 0)
 
                 Circle()
                     .fill(
                         (currentBeat == 0 && isPlaying)
-                            ? RadialGradient(colors: [.red.opacity(0.2), .clear], center: .center, startRadius: 0, endRadius: 80)
-                            : RadialGradient(colors: [.blue.opacity(0.15), .clear], center: .center, startRadius: 0, endRadius: 80)
+                            ? RadialGradient(colors: [.red.opacity(0.2), .clear], center: .center, startRadius: 0, endRadius: 60)
+                            : RadialGradient(colors: [.blue.opacity(0.15), .clear], center: .center, startRadius: 0, endRadius: 60)
                     )
-                    .frame(width: 160, height: 160)
+                    .frame(width: 120, height: 120)
                     .opacity(flashOpacity)
 
                 pendulumArm
@@ -87,18 +87,18 @@ struct MetronomeView: View {
                                 : LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing))
                             : LinearGradient(colors: [Color(.quaternarySystemFill), Color(.tertiarySystemFill)], startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
-                    .frame(width: 20, height: 20)
+                    .frame(width: 16, height: 16)
                     .scaleEffect(pulsePhase ? 1.6 : 1.0)
-                    .shadow(color: isPlaying ? (currentBeat == 0 ? .red.opacity(0.6) : .blue.opacity(0.5)) : .clear, radius: pulsePhase ? 16 : 4)
+                    .shadow(color: isPlaying ? (currentBeat == 0 ? .red.opacity(0.6) : .blue.opacity(0.5)) : .clear, radius: pulsePhase ? 12 : 4)
             }
-            .frame(width: 170, height: 170)
+            .frame(width: 130, height: 130)
 
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 ForEach(0..<beatsPerMeasure, id: \.self) { beat in
                     let isActive = isPlaying && currentBeat == beat
                     let isDownbeat = beat == 0
 
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 3)
                         .fill(
                             isActive
                                 ? (isDownbeat
@@ -106,12 +106,12 @@ struct MetronomeView: View {
                                     : LinearGradient(colors: [.blue, .cyan], startPoint: .top, endPoint: .bottom))
                                 : LinearGradient(colors: [Color(.tertiarySystemFill), Color(.quaternarySystemFill)], startPoint: .top, endPoint: .bottom)
                         )
-                        .frame(width: isDownbeat ? 10 : 8, height: isActive ? 32 : 16)
-                        .shadow(color: isActive ? (isDownbeat ? .red.opacity(0.5) : .blue.opacity(0.4)) : .clear, radius: isActive ? 10 : 0)
+                        .frame(width: isDownbeat ? 10 : 8, height: isActive ? 28 : 14)
+                        .shadow(color: isActive ? (isDownbeat ? .red.opacity(0.5) : .blue.opacity(0.4)) : .clear, radius: isActive ? 8 : 0)
                         .animation(.spring(response: 0.2, dampingFraction: 0.5), value: isActive)
                 }
             }
-            .frame(height: 36)
+            .frame(height: 30)
         }
     }
 
@@ -124,40 +124,40 @@ struct MetronomeView: View {
                     endPoint: .top
                 )
             )
-            .frame(width: 3, height: 56)
-            .offset(y: -28)
+            .frame(width: 2.5, height: 42)
+            .offset(y: -21)
             .rotationEffect(.degrees(pendulumAngle), anchor: .bottom)
     }
 
     private var tempoDisplay: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 2) {
             Text("\(Int(bpm))")
-                .font(.system(size: 72, weight: .bold, design: .rounded))
+                .font(.system(size: 56, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText(value: bpm))
                 .animation(.snappy(duration: 0.2), value: Int(bpm))
 
             Text("BPM")
-                .font(.subheadline.weight(.semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .tracking(2)
                 .textCase(.uppercase)
 
             Text(tempoMarking)
-                .font(.caption.weight(.medium))
+                .font(.caption2.weight(.medium))
                 .foregroundStyle(.tertiary)
                 .animation(.easeInOut, value: tempoMarking)
         }
     }
 
-    private var tempoDialControl: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 20) {
+    private var tempoControls: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 16) {
                 Button {
                     adjustBPM(by: -5)
                 } label: {
                     Image(systemName: "minus.circle.fill")
-                        .font(.title)
+                        .font(.title2)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.blue)
                 }
@@ -174,13 +174,13 @@ struct MetronomeView: View {
                     adjustBPM(by: 5)
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.title)
+                        .font(.title2)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(.blue)
                 }
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 ForEach([60, 80, 100, 120, 140], id: \.self) { preset in
                     let isSelected = Int(bpm) == preset
                     Button {
@@ -190,10 +190,10 @@ struct MetronomeView: View {
                         if isPlaying { restartMetronome() }
                     } label: {
                         Text("\(preset)")
-                            .font(.caption.weight(.bold))
+                            .font(.caption2.weight(.bold))
                             .monospacedDigit()
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
                             .background(isSelected ? Color.blue : Color(.tertiarySystemFill), in: Capsule())
                             .foregroundStyle(isSelected ? .white : .primary)
                     }
@@ -204,9 +204,9 @@ struct MetronomeView: View {
     }
 
     private var timeSignatureSelector: some View {
-        HStack(spacing: 12) {
-            Text("Time Signature")
-                .font(.subheadline.weight(.semibold))
+        HStack(spacing: 10) {
+            Text("Time Sig")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
             Picker("Beats", selection: $beatsPerMeasure) {
@@ -216,7 +216,7 @@ struct MetronomeView: View {
                 Text("6/8").tag(6)
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 240)
+            .frame(maxWidth: 220)
             .onChange(of: beatsPerMeasure) { _, _ in
                 currentBeat = 0
                 if isPlaying { restartMetronome() }
@@ -233,11 +233,11 @@ struct MetronomeView: View {
                     .fill(isPlaying
                         ? LinearGradient(colors: [.red, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
                         : LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 80, height: 80)
-                    .shadow(color: isPlaying ? .red.opacity(0.3) : .blue.opacity(0.3), radius: 12, y: 4)
+                    .frame(width: 70, height: 70)
+                    .shadow(color: isPlaying ? .red.opacity(0.3) : .blue.opacity(0.3), radius: 10, y: 3)
 
                 Image(systemName: isPlaying ? "stop.fill" : "play.fill")
-                    .font(.title.weight(.bold))
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(.white)
                     .contentTransition(.symbolEffect(.replace))
             }
@@ -385,7 +385,6 @@ struct MetronomeView: View {
         withAnimation(.easeOut(duration: 0.08)) {
             flashOpacity = isDownbeat ? 1.0 : 0.6
             pulsePhase = true
-            ringScale = 1.15
         }
 
         let swingAngle: Double = min(30, 15 + (bpm / 20))
@@ -397,7 +396,6 @@ struct MetronomeView: View {
         withAnimation(.easeIn(duration: 0.35).delay(0.08)) {
             flashOpacity = 0
             pulsePhase = false
-            ringScale = 0.8
         }
     }
 }

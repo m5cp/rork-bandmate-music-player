@@ -6,30 +6,32 @@ struct TunerView: View {
     @State private var viewModel = TunerViewModel()
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                noteDisplay
-                    .padding(.top, 16)
-                    .padding(.bottom, 24)
+        VStack(spacing: 0) {
+            Spacer(minLength: 4)
 
-                pitchIndicator
-                    .padding(.bottom, 32)
+            noteDisplay
 
-                frequencyDisplay
-                    .padding(.bottom, 32)
+            Spacer(minLength: 8)
 
-                referenceToneButton
-                    .padding(.bottom, 20)
+            pitchIndicator
+                .padding(.horizontal)
+                .padding(.bottom, 12)
 
-                referenceSelector
-                    .padding(.bottom, 32)
+            frequencyDisplay
+                .padding(.bottom, 12)
 
-                micButton
-                    .padding(.bottom, 24)
-            }
-            .padding(.horizontal)
+            referenceToneButton
+                .padding(.bottom, 10)
+
+            referenceSelector
+                .padding(.horizontal)
+                .padding(.bottom, 12)
+
+            micButton
+                .padding(.bottom, 8)
+
+            Spacer(minLength: 4)
         }
-        .scrollIndicators(.hidden)
         .sensoryFeedback(.success, trigger: viewModel.inTuneTrigger)
         .onDisappear {
             viewModel.stop()
@@ -61,32 +63,32 @@ struct TunerView: View {
     }
 
     private var noteDisplay: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 4) {
             if viewModel.isListening {
                 Text(viewModel.currentNote)
-                    .font(.system(size: 80, weight: .bold, design: .rounded))
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
                     .foregroundStyle(viewModel.tuningColor)
                     .contentTransition(.numericText())
                     .animation(.spring(duration: 0.3), value: viewModel.currentNote)
 
                 Text("Octave \(viewModel.currentOctave)")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             } else {
                 Text("--")
-                    .font(.system(size: 80, weight: .bold, design: .rounded))
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
                     .foregroundStyle(.tertiary)
 
                 Text("Tap mic to start")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
         }
-        .frame(height: 120)
+        .frame(height: 100)
     }
 
     private var pitchIndicator: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             GeometryReader { geo in
                 let width = geo.size.width
                 let center = width / 2
@@ -97,35 +99,34 @@ struct TunerView: View {
                 ZStack {
                     HStack {
                         Text("♭")
-                            .font(.title3.weight(.bold))
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(.secondary)
                         Spacer()
                         Text("♯")
-                            .font(.title3.weight(.bold))
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(.secondary)
                     }
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color(.quaternarySystemFill))
-                        .frame(height: 8)
+                        .frame(height: 6)
 
                     RoundedRectangle(cornerRadius: 2)
                         .fill(.green)
-                        .frame(width: 4, height: 20)
+                        .frame(width: 3, height: 16)
                         .position(x: center, y: geo.size.height / 2)
 
                     if viewModel.isListening && viewModel.currentFrequency > 0 {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(viewModel.tuningColor)
-                            .frame(width: 12, height: 24)
+                            .frame(width: 10, height: 20)
                             .shadow(color: viewModel.tuningColor.opacity(0.5), radius: 6)
                             .position(x: max(20, min(width - 20, position)), y: geo.size.height / 2)
                             .animation(.spring(duration: 0.2), value: centsOffset)
                     }
                 }
             }
-            .frame(height: 40)
-            .padding(.horizontal, 8)
+            .frame(height: 32)
 
             if viewModel.isListening && viewModel.currentFrequency > 0 {
                 Text(viewModel.tuningText)
@@ -137,21 +138,21 @@ struct TunerView: View {
     }
 
     private var frequencyDisplay: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 2) {
             if viewModel.isListening && viewModel.currentFrequency > 0 {
                 Text(String(format: "%.1f Hz", viewModel.currentFrequency))
-                    .font(.system(.title3, design: .monospaced).weight(.semibold))
+                    .font(.system(.body, design: .monospaced).weight(.semibold))
                     .foregroundStyle(.primary)
                     .contentTransition(.numericText())
                     .animation(.snappy(duration: 0.15), value: Int(viewModel.currentFrequency))
             } else {
                 Text("--- Hz")
-                    .font(.system(.title3, design: .monospaced).weight(.semibold))
+                    .font(.system(.body, design: .monospaced).weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
 
             Text("Target: \(String(format: "%.1f Hz", viewModel.targetFrequency))")
-                .font(.caption.weight(.medium))
+                .font(.caption2.weight(.medium))
                 .foregroundStyle(.secondary)
         }
     }
@@ -160,16 +161,16 @@ struct TunerView: View {
         Button {
             viewModel.toggleReferenceTone()
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Image(systemName: viewModel.isPlayingTone ? "speaker.wave.2.fill" : "speaker.fill")
-                    .font(.subheadline.weight(.bold))
+                    .font(.caption.weight(.bold))
                     .contentTransition(.symbolEffect(.replace))
-                Text(viewModel.isPlayingTone ? "Stop Reference Tone" : "Play Reference Tone")
-                    .font(.subheadline.weight(.semibold))
+                Text(viewModel.isPlayingTone ? "Stop Tone" : "Reference Tone")
+                    .font(.caption.weight(.semibold))
             }
             .foregroundStyle(viewModel.isPlayingTone ? .white : .blue)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
             .background(
                 viewModel.isPlayingTone
                     ? AnyShapeStyle(LinearGradient(colors: [.blue, .cyan], startPoint: .leading, endPoint: .trailing))
@@ -182,19 +183,19 @@ struct TunerView: View {
     }
 
     private var referenceSelector: some View {
-        HStack(spacing: 12) {
-            Text("Reference")
-                .font(.subheadline.weight(.semibold))
+        HStack(spacing: 10) {
+            Text("Ref")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
             Picker("Reference Pitch", selection: $viewModel.referencePitch) {
-                Text("A = 440").tag(440.0)
-                Text("A = 441").tag(441.0)
-                Text("A = 442").tag(442.0)
-                Text("A = 443").tag(443.0)
+                Text("440").tag(440.0)
+                Text("441").tag(441.0)
+                Text("442").tag(442.0)
+                Text("443").tag(443.0)
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 280)
+            .frame(maxWidth: 220)
         }
     }
 
@@ -211,11 +212,11 @@ struct TunerView: View {
                     .fill(viewModel.isListening
                         ? LinearGradient(colors: [.red, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
                         : LinearGradient(colors: [.green, .mint], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 80, height: 80)
-                    .shadow(color: viewModel.isListening ? .red.opacity(0.3) : .green.opacity(0.3), radius: 12, y: 4)
+                    .frame(width: 70, height: 70)
+                    .shadow(color: viewModel.isListening ? .red.opacity(0.3) : .green.opacity(0.3), radius: 10, y: 3)
 
                 Image(systemName: viewModel.isListening ? "stop.fill" : "mic.fill")
-                    .font(.title.weight(.bold))
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(.white)
                     .contentTransition(.symbolEffect(.replace))
             }
