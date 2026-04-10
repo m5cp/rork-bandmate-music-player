@@ -154,8 +154,8 @@ struct ContactSupportView: View {
                     answer: "When you record yourself playing, the audio is analyzed by AI to provide general feedback on pitch, rhythm, and overall performance. This is approximate and not a replacement for teacher evaluation."
                 )
                 FAQItem(
-                    question: "Can I use KITB without a subscription?",
-                    answer: "KITB offers limited free features. A subscription unlocks unlimited scans, AI practice feedback, and access to the full sample library."
+                    question: "Is KITB free to use?",
+                    answer: "Yes! KITB is free to use. Scan sheet music, play it back on your instrument, practice with AI feedback, and use the metronome and tuner — all at no cost."
                 )
                 FAQItem(
                     question: "Is my data safe?",

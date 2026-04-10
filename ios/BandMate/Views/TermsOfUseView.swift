@@ -43,14 +43,9 @@ struct TermsOfUseView: View {
                     }
                 }
 
-                PolicyCard(icon: "creditcard.fill", iconColor: .purple, title: "4. Subscriptions & Payments") {
+                PolicyCard(icon: "iphone.gen2", iconColor: .purple, title: "4. App Access") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Subscriptions are billed through your Apple ID and managed via App Store. All payments are handled securely by Apple — we never see or store your payment information.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("You may cancel your subscription at any time through your Apple ID settings. Cancellation takes effect at the end of your current billing period.")
+                        Text("KITB is a free app. If in-app purchases are introduced in the future, they will be billed through your Apple ID and managed via the App Store. All payments are handled securely by Apple — we never see or store your payment information.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
