@@ -7,6 +7,7 @@ struct WelcomeView: View {
     @State private var showSubtitle: Bool = false
     @State private var showButton: Bool = false
     @State private var fadeOut: Bool = false
+    @State private var buttonReady: Bool = false
     @State private var pulseRing: Bool = false
     @State private var backgroundGlow: Bool = false
     @State private var staffLinesVisible: Bool = false
@@ -217,19 +218,33 @@ struct WelcomeView: View {
 
             Spacer()
 
-            HStack(spacing: 12) {
-                Text("LET'S PLAY")
-                    .font(.system(.headline, weight: .bold))
-                    .tracking(3)
+            Button {
+                guard buttonReady else { return }
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    fadeOut = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    onContinue()
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Text("LET'S PLAY")
+                        .font(.system(.headline, weight: .bold))
+                        .tracking(3)
 
-                Image(systemName: "arrow.right")
-                    .font(.system(.body, weight: .bold))
-                    .symbolEffect(.wiggle, isActive: showButton)
+                    Image(systemName: "arrow.right")
+                        .font(.system(.body, weight: .bold))
+                        .symbolEffect(.wiggle, isActive: buttonReady)
+                }
+                .foregroundStyle(.white.opacity(0.9))
+                .padding(.horizontal, 40)
+                .padding(.vertical, 16)
+                .background(.ultraThinMaterial, in: .capsule)
             }
-            .foregroundStyle(.white.opacity(0.7))
+            .buttonStyle(.plain)
             .opacity(showButton ? 1 : 0)
             .offset(y: showButton ? 0 : 40)
-            .sensoryFeedback(.impact(weight: .medium), trigger: showButton)
+            .sensoryFeedback(.impact(weight: .medium), trigger: buttonReady)
 
             Spacer().frame(height: 60)
         }
@@ -265,13 +280,10 @@ struct WelcomeView: View {
             showButton = true
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
-            withAnimation(.easeInOut(duration: 0.6)) {
-                fadeOut = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                onContinue()
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            buttonReady = true
         }
+
+
     }
 }

@@ -13,6 +13,7 @@ struct HomeView: View {
     @State private var practiceTargetSong: Song?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var gamification = GamificationManager.shared
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -22,6 +23,9 @@ struct HomeView: View {
                         iPadTopSection
                     } else {
                         greetingSection
+                        if gamification.currentStreak > 0 || gamification.totalPracticeSessions > 0 {
+                            dailyStreakBanner
+                        }
                         actionCards
                         practiceCard
                     }
@@ -363,6 +367,60 @@ struct HomeView: View {
             }
             .padding(.horizontal)
         }
+    }
+
+    private var dailyStreakBanner: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 48, height: 48)
+                Image(systemName: "flame.fill")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                if gamification.currentStreak > 0 {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("\(gamification.currentStreak)")
+                            .font(.title3.weight(.heavy))
+                            .monospacedDigit()
+                            .foregroundStyle(.orange)
+                        Text(gamification.currentStreak == 1 ? "day streak" : "day streak")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text("Start your streak!")
+                        .font(.subheadline.weight(.bold))
+                }
+                Text("\(gamification.totalPracticeSessions) sessions \u{2022} \(gamification.totalPracticeMinutes)m practiced")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+
+            if gamification.currentStreak >= 3 {
+                Text("\u{1F525}")
+                    .font(.title2)
+            }
+        }
+        .padding(14)
+        .background(
+            LinearGradient(
+                colors: [.orange.opacity(0.08), .yellow.opacity(0.04)],
+                startPoint: .leading,
+                endPoint: .trailing
+            ),
+            in: .rect(cornerRadius: 14)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(.orange.opacity(0.15), lineWidth: 1)
+        )
+        .padding(.horizontal)
     }
 
     private var howItWorksSteps: [(icon: String, color: Color, title: String, detail: String)] {
