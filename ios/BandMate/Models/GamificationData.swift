@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import WidgetKit
 
 nonisolated struct Achievement: Identifiable, Codable, Sendable {
     let id: String
@@ -109,13 +110,28 @@ class GamificationManager {
         defaults.set(currentStreak, forKey: streakKey)
         defaults.set(today, forKey: lastPracticeDateKey)
 
+        syncToWidget()
         checkAchievements()
     }
 
     func recordSongScanned() {
         totalSongsScanned += 1
         UserDefaults.standard.set(totalSongsScanned, forKey: songsScannedKey)
+        syncToWidget()
         checkAchievements()
+    }
+
+    private func syncToWidget() {
+        let shared = UserDefaults(suiteName: "group.app.rork.sjsw8khf25sdj5xwh0897")
+        shared?.set(currentStreak, forKey: "widget_streak")
+        shared?.set(longestStreak, forKey: "widget_longestStreak")
+        shared?.set(totalPracticeSessions, forKey: "widget_sessions")
+        shared?.set(totalPracticeMinutes, forKey: "widget_minutes")
+        shared?.set(totalSongsScanned, forKey: "widget_songs")
+        shared?.set(unlockedCount, forKey: "widget_achievements")
+        shared?.set(achievements.count, forKey: "widget_totalAchievements")
+        shared?.set(Date(), forKey: "widget_lastUpdate")
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func setupAchievements() {

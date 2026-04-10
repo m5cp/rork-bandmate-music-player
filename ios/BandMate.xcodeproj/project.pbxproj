@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		XXE5ADC9BDC492F759E938XX /* KITBWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = XXCFC9851F27948D075F2CXX /* KITBWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		105FC58A2E9EAD3200EA8BCF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,29 +25,54 @@
 			remoteGlobalIDString = 105FC5792E9EAD3100EA8BCF;
 			remoteInfo = BandMate;
 		};
+		XX092123FF127C063EFBF1XX /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 105FC5722E9EAD3100EA8BCF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = XXCC58EE2844DA2C356FB6XX;
+			remoteInfo = KITBWidget;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		XX3456A5F2F15BFB4A9200XX /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				XXE5ADC9BDC492F759E938XX /* KITBWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		105FC57A2E9EAD3100EA8BCF /* BandMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BandMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5892E9EAD3200EA8BCF /* BandMateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BandMateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5932E9EAD3200EA8BCF /* BandMateUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BandMateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		XXCFC9851F27948D075F2CXX /* KITBWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KITBWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		XXDAAF8672232DCCE6333BXX /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = XXCC58EE2844DA2C356FB6XX /* KITBWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		105FC57C2E9EAD3100EA8BCF /* BandMate */ = {
+		XXC8839B6FDEE24E2F5AABXX /* KITBWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BandMate;
+			path = KITBWidget;
 			sourceTree = "<group>";
-		};
-		105FC58C2E9EAD3200EA8BCF /* BandMateTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BandMateTests;
-			sourceTree = "<group>";
-		};
-		105FC5962E9EAD3200EA8BCF /* BandMateUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BandMateUITests;
-			sourceTree = "<group>";
+			exceptions = (
+				XXDAAF8672232DCCE6333BXX /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -69,7 +98,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		XX75B8358D2242CEB782C5XX /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		105FC57C2E9EAD3100EA8BCF /* BandMate */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BandMate;
+			sourceTree = "<group>";
+		};
+		105FC58C2E9EAD3200EA8BCF /* BandMateTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BandMateTests;
+			sourceTree = "<group>";
+		};
+		105FC5962E9EAD3200EA8BCF /* BandMateUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BandMateUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXGroup section */
 		105FC5712E9EAD3100EA8BCF = {
@@ -79,6 +133,7 @@
 				105FC58C2E9EAD3200EA8BCF /* BandMateTests */,
 				105FC5962E9EAD3200EA8BCF /* BandMateUITests */,
 				105FC57B2E9EAD3100EA8BCF /* Products */,
+				XXC8839B6FDEE24E2F5AABXX /* KITBWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -88,6 +143,7 @@
 				105FC57A2E9EAD3100EA8BCF /* BandMate.app */,
 				105FC5892E9EAD3200EA8BCF /* BandMateTests.xctest */,
 				105FC5932E9EAD3200EA8BCF /* BandMateUITests.xctest */,
+				XXCFC9851F27948D075F2CXX /* KITBWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,10 +158,12 @@
 				105FC5762E9EAD3100EA8BCF /* Sources */,
 				105FC5772E9EAD3100EA8BCF /* Frameworks */,
 				105FC5782E9EAD3100EA8BCF /* Resources */,
+				XX3456A5F2F15BFB4A9200XX /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				XX33EF9C18F4C492D0395BXX /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				105FC57C2E9EAD3100EA8BCF /* BandMate */,
@@ -163,6 +221,26 @@
 			productReference = 105FC5932E9EAD3200EA8BCF /* BandMateUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		XXCC58EE2844DA2C356FB6XX /* KITBWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = XX72538612553B4F979F24XX /* Build configuration list for PBXNativeTarget "KITBWidget" */;
+			buildPhases = (
+				XXE0FD6AFA7551401BFCEBXX /* Sources */,
+				XX75B8358D2242CEB782C5XX /* Frameworks */,
+				XX8DEE49FEB104205DDA8DXX /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KITBWidget;
+			productName = KITBWidget;
+			productReference = XXCFC9851F27948D075F2CXX /* KITBWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+			fileSystemSynchronizedGroups = (
+				XXC8839B6FDEE24E2F5AABXX /* KITBWidget */,
+			);
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -203,6 +281,7 @@
 				105FC5792E9EAD3100EA8BCF /* BandMate */,
 				105FC5882E9EAD3200EA8BCF /* BandMateTests */,
 				105FC5922E9EAD3200EA8BCF /* BandMateUITests */,
+				XXCC58EE2844DA2C356FB6XX /* KITBWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +302,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		105FC5912E9EAD3200EA8BCF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		XX8DEE49FEB104205DDA8DXX /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +339,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		XXE0FD6AFA7551401BFCEBXX /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +358,11 @@
 			isa = PBXTargetDependency;
 			target = 105FC5792E9EAD3100EA8BCF /* BandMate */;
 			targetProxy = 105FC5942E9EAD3200EA8BCF /* PBXContainerItemProxy */;
+		};
+		XX33EF9C18F4C492D0395BXX /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = XXCC58EE2844DA2C356FB6XX /* KITBWidget */;
+			targetProxy = XX092123FF127C063EFBF1XX /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -395,6 +493,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BandMate/BandMate.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -432,6 +531,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BandMate/BandMate.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -474,7 +574,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.sjsw8khf25sdj5xwh0897.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.sjsw8khf25sdj5xwh0897.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -496,7 +596,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.sjsw8khf25sdj5xwh0897.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.sjsw8khf25sdj5xwh0897.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -516,7 +616,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.sjsw8khf25sdj5xwh0897.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.sjsw8khf25sdj5xwh0897.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -536,7 +636,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.sjsw8khf25sdj5xwh0897.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.sjsw8khf25sdj5xwh0897.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -547,6 +647,52 @@
 				TEST_TARGET_NAME = BandMate;
 			};
 			name = Release;
+		};
+		XX099C91E649866DC0DC9CXX /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = KITBWidget/KITBWidget.entitlements;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.sjsw8khf25sdj5xwh0897.kitbwidget;
+				PRODUCT_NAME = KITBWidget;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KITBWidget/Info.plist;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
+			};
+			name = Release;
+		};
+		XX56157488C2728D5A0503XX /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = KITBWidget/KITBWidget.entitlements;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.sjsw8khf25sdj5xwh0897.kitbwidget;
+				PRODUCT_NAME = KITBWidget;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KITBWidget/Info.plist;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -583,6 +729,15 @@
 			buildConfigurations = (
 				105FC5A42E9EAD3200EA8BCF /* Debug */,
 				105FC5A52E9EAD3200EA8BCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		XX72538612553B4F979F24XX /* Build configuration list for PBXNativeTarget "KITBWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				XX56157488C2728D5A0503XX /* Debug */,
+				XX099C91E649866DC0DC9CXX /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

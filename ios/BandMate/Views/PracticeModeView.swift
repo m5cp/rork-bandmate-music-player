@@ -496,6 +496,13 @@ struct PracticeModeView: View {
             instrument: activeInstrument.rawValue,
             durationSeconds: viewModel.elapsedTime
         )
+
+        ReviewRequestService.shared.recordPracticeCompleted()
+        if feedback.overallScore >= 60 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                ReviewRequestService.shared.requestReviewIfAppropriate()
+            }
+        }
     }
 }
 
